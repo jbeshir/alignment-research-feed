@@ -4,6 +4,11 @@ DOCKER_COMMAND=docker-compose --env-file .env -p ${SERVICE_NAME} -f docker/dev/d
 .PHONY setup-tools:
 setup-tools: setup-files
 	go install github.com/joho/godotenv/cmd/godotenv@latest
+	go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
+.PHONY generate:
+generate:
+	go generate ./...
 
 .PHONY docker-up:
 docker-up:
@@ -15,7 +20,7 @@ docker-down:
 
 .PHONY docker-migrate:
 docker-migrate:
-	godotenv bash -c 'docker run -v $${PWD}/migrations/dataset:/migrations --network host migrate/migrate -path=/migrations/ -database $${MYSQL_URI} up'
+	godotenv bash -c 'docker run -v $${PWD}/migrations/dataset:/migrations --network host migrate/migrate -path=/migrations/ -database mysql://$${MYSQL_URI} up'
 
 .PHONY docker-mysql:
 docker-mysql:
