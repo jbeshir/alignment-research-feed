@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS `articles` (
+    `id` int NOT NULL AUTO_INCREMENT,
+    `hash_id` varchar(32) NOT NULL,
+    `title` varchar(1028) DEFAULT NULL,
+    `url` varchar(1028) DEFAULT NULL,
+    `source` varchar(128) DEFAULT NULL,
+    `source_type` varchar(128) DEFAULT NULL,
+    `authors` varchar(1024) NOT NULL,
+    `text` longtext,
+    `date_published` datetime DEFAULT NULL,
+    `metadata` json DEFAULT NULL,
+    `date_created` datetime NOT NULL,
+    `date_updated` datetime DEFAULT NULL,
+    `confidence` float DEFAULT NULL,
+    `status` varchar(256) DEFAULT NULL,
+    `comments` longtext,
+    `pinecone_status` varchar(32) NOT NULL,
+    `date_checked` datetime NOT NULL,
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `hash_id` (`hash_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=17213 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci

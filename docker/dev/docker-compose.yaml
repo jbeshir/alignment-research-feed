@@ -1,0 +1,14 @@
+version: "3.8"
+services:
+  database:
+    image: "mysql:8.3"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DEV_MYSQL_ROOT_PASSWORD}
+      MYSQL_USER: ${DEV_MYSQL_USER}
+      MYSQL_PASSWORD: ${DEV_MYSQL_PASSWORD}
+      MYSQL_DATABASE: ${DEV_MYSQL_DATABASE}
+      MYSQL_PORT: 3306
+    ports:
+      - ${DEV_MYSQL_PORT}:3306
+    env_file:
+      - ../../.env
