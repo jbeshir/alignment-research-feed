@@ -22,6 +22,14 @@ docker-down:
 docker-migrate:
 	godotenv bash -c 'docker run -v $${PWD}/migrations/dataset:/migrations --network host migrate/migrate -path=/migrations/ -database mysql://$${MYSQL_URI} up'
 
+.PHONY docker-build:
+docker-build:
+	docker build -t alignment-research-feed -f docker/release/Dockerfile .
+
+.PHONY docker-run:
+docker-run:
+	godotenv bash -c 'docker run --env-file .env --expose $${HTTP_TLS_DISABLED_PORT} -p $${HTTP_TLS_DISABLED_PORT}:$${HTTP_TLS_DISABLED_PORT} alignment-research-feed'
+
 .PHONY docker-mysql:
 docker-mysql:
 	godotenv bash -c 'docker run -it --network ${SERVICE_NAME}_default --rm mysql mysql -hdatabase -u$${DEV_MYSQL_USER} -p$${DEV_MYSQL_PASSWORD}'
