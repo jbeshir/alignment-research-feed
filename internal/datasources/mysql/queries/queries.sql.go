@@ -11,12 +11,13 @@ import (
 )
 
 const listLatestArticles = `-- name: ListLatestArticles :many
-SELECT title, url, LEFT(COALESCE(text, ''), 500) as text_start, authors, date_published FROM articles
+SELECT hash_id, title, url, LEFT(COALESCE(text, ''), 500) as text_start, authors, date_published FROM articles
 ORDER BY date_published DESC
 LIMIT ?
 `
 
 type ListLatestArticlesRow struct {
+	HashID        string
 	Title         sql.NullString
 	Url           sql.NullString
 	TextStart     string
@@ -34,6 +35,7 @@ func (q *Queries) ListLatestArticles(ctx context.Context, limit int32) ([]ListLa
 	for rows.Next() {
 		var i ListLatestArticlesRow
 		if err := rows.Scan(
+			&i.HashID,
 			&i.Title,
 			&i.Url,
 			&i.TextStart,

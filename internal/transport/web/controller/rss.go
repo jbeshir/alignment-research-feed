@@ -37,6 +37,8 @@ func (c RSS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	for _, a := range articles {
 		feed.Items = append(feed.Items, &feeds.Item{
+			Id:          a.HashID,
+			IsPermaLink: "false",
 			Title:       a.Title,
 			Link:        &feeds.Link{Href: a.Link},
 			Description: a.TextStart,
