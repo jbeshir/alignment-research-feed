@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/gorilla/feeds"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources"
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
@@ -14,6 +15,7 @@ type RSS struct {
 	FeedAuthorName  string
 	FeedAuthorEmail string
 	Dataset         datasources.DatasetRepository
+	CacheMaxAge     time.Duration
 }
 
 func (c RSS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -60,6 +62,7 @@ func (c RSS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/xml")
+	w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", int(c.CacheMaxAge.Seconds())))
 
 	if _, err := w.Write([]byte(rss)); err != nil {
 		ctx := r.Context()

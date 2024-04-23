@@ -25,6 +25,7 @@ func Setup(ctx context.Context) ([]Component, error) {
 		MustGetEnvAsString(ctx, "RSS_FEED_BASE_URL"),
 		MustGetEnvAsString(ctx, "RSS_FEED_AUTHOR_NAME"),
 		MustGetEnvAsString(ctx, "RSS_FEED_AUTHOR_EMAIL"),
+		MustGetEnvAsDuration(ctx, "RSS_FEED_LATEST_CACHE_MAX_AGE"),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create HTTP router: %w", err)

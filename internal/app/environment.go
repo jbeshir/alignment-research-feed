@@ -7,6 +7,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func MustGetEnvAsString(ctx context.Context, name string) string {
@@ -52,4 +53,20 @@ func MustGetEnvAsBoolean(ctx context.Context, name string) bool {
 		)
 		panic(fmt.Sprintf("unable to parse environment variable as boolean ('true'/'false') [%s]: %s", name, s))
 	}
+}
+
+func MustGetEnvAsDuration(ctx context.Context, name string) time.Duration {
+	s := MustGetEnvAsString(ctx, name)
+
+	duration, err := time.ParseDuration(s)
+	if err != nil {
+		logger := domain.LoggerFromContext(ctx)
+		logger.ErrorContext(ctx, "unable to parse environment variable as duration",
+			"variable_name", name,
+			"variable_value", s,
+		)
+		panic(fmt.Sprintf("unable to parse environment variable as duration [%s]: %s", name, s))
+	}
+
+	return duration
 }
