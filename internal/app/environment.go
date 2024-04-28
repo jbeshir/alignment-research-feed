@@ -70,3 +70,8 @@ func MustGetEnvAsDuration(ctx context.Context, name string) time.Duration {
 
 	return duration
 }
+
+func MustGetEnvAsStrings(ctx context.Context, name string) []string {
+	s := MustGetEnvAsString(ctx, name)
+	return strings.Split(s, ",")
+}

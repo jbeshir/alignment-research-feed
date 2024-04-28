@@ -33,10 +33,10 @@ func Setup(ctx context.Context) ([]Component, error) {
 
 	return []Component{
 		&server.Server{
-			TLSDisabled:      MustGetEnvAsBoolean(ctx, "HTTP_TLS_DISABLED"),
-			TLSDisabledPort:  MustGetEnvAsInt(ctx, "HTTP_TLS_DISABLED_PORT"),
-			AutocertHostname: MustGetEnvAsString(ctx, "HTTP_AUTOCERT_HOSTNAME"),
-			Router:           httpRouter,
+			TLSDisabled:       MustGetEnvAsBoolean(ctx, "HTTP_TLS_DISABLED"),
+			TLSDisabledPort:   MustGetEnvAsInt(ctx, "HTTP_TLS_DISABLED_PORT"),
+			AutocertHostnames: MustGetEnvAsStrings(ctx, "HTTP_AUTOCERT_HOSTNAMES"),
+			Router:            httpRouter,
 		},
 	}, nil
 }
