@@ -1,0 +1,21 @@
+version: "3.8"
+services:
+  testrunner:
+    build:
+      context: ../..
+      dockerfile: docker/Dockerfile
+      target: builder
+      no_cache: true
+      args:
+        RUN_BUILD: 0
+    environment:
+      DEV_MYSQL_HOST: database
+      DEV_MYSQL_PORT: 3306
+      MYSQL_URI: ${DEV_MYSQL_USER}:${DEV_MYSQL_PASSWORD}@tcp(database:3306)/${DEV_MYSQL_DATABASE}
+    env_file:
+      - ../../.env.dist
+    entrypoint: ['/source/docker/dev/test-runner.sh']
+
+  database:
+    ports: []
+

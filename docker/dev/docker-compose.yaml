@@ -8,7 +8,5 @@ services:
       MYSQL_PASSWORD: ${DEV_MYSQL_PASSWORD}
       MYSQL_DATABASE: ${DEV_MYSQL_DATABASE}
       MYSQL_PORT: 3306
-    ports:
-      - ${DEV_MYSQL_PORT}:3306
     env_file:
       - ../../.env

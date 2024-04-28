@@ -8,25 +8,103 @@ package queries
 import (
 	"context"
 	"database/sql"
+	"strings"
+	"time"
 )
 
+const insertArticle = `-- name: InsertArticle :exec
+INSERT INTO articles (
+                      hash_id,
+                      title,
+                      url,
+                      source,
+                      text,
+                      authors,
+                      date_published,
+                      date_created,
+                      pinecone_status,
+                      date_checked) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+`
+
+type InsertArticleParams struct {
+	HashID         string
+	Title          sql.NullString
+	Url            sql.NullString
+	Source         sql.NullString
+	Text           sql.NullString
+	Authors        string
+	DatePublished  sql.NullTime
+	DateCreated    time.Time
+	PineconeStatus string
+	DateChecked    time.Time
+}
+
+func (q *Queries) InsertArticle(ctx context.Context, arg InsertArticleParams) error {
+	_, err := q.db.ExecContext(ctx, insertArticle,
+		arg.HashID,
+		arg.Title,
+		arg.Url,
+		arg.Source,
+		arg.Text,
+		arg.Authors,
+		arg.DatePublished,
+		arg.DateCreated,
+		arg.PineconeStatus,
+		arg.DateChecked,
+	)
+	return err
+}
+
 const listLatestArticles = `-- name: ListLatestArticles :many
-SELECT hash_id, title, url, LEFT(COALESCE(text, ''), 500) as text_start, authors, date_published FROM articles
+SELECT hash_id, title, url, source, LEFT(COALESCE(text, ''), 500) as text_start, authors, date_published FROM articles
+WHERE
+    (0 = ? OR source IN (/*SLICE:only_sources*/?))
+    AND (0 = ? OR source NOT IN (/*SLICE:except_sources*/?))
 ORDER BY date_published DESC
 LIMIT ?
 `
+
+type ListLatestArticlesParams struct {
+	OnlySourcesFilter   interface{}
+	OnlySources         []sql.NullString
+	ExceptSourcesFilter interface{}
+	ExceptSources       []sql.NullString
+	Limit               int32
+}
 
 type ListLatestArticlesRow struct {
 	HashID        string
 	Title         sql.NullString
 	Url           sql.NullString
+	Source        sql.NullString
 	TextStart     string
 	Authors       string
 	DatePublished sql.NullTime
 }
 
-func (q *Queries) ListLatestArticles(ctx context.Context, limit int32) ([]ListLatestArticlesRow, error) {
-	rows, err := q.db.QueryContext(ctx, listLatestArticles, limit)
+func (q *Queries) ListLatestArticles(ctx context.Context, arg ListLatestArticlesParams) ([]ListLatestArticlesRow, error) {
+	query := listLatestArticles
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.OnlySourcesFilter)
+	if len(arg.OnlySources) > 0 {
+		for _, v := range arg.OnlySources {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:only_sources*/?", strings.Repeat(",?", len(arg.OnlySources))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:only_sources*/?", "NULL", 1)
+	}
+	queryParams = append(queryParams, arg.ExceptSourcesFilter)
+	if len(arg.ExceptSources) > 0 {
+		for _, v := range arg.ExceptSources {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:except_sources*/?", strings.Repeat(",?", len(arg.ExceptSources))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:except_sources*/?", "NULL", 1)
+	}
+	queryParams = append(queryParams, arg.Limit)
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
 	if err != nil {
 		return nil, err
 	}
@@ -38,6 +116,7 @@ func (q *Queries) ListLatestArticles(ctx context.Context, limit int32) ([]ListLa
 			&i.HashID,
 			&i.Title,
 			&i.Url,
+			&i.Source,
 			&i.TextStart,
 			&i.Authors,
 			&i.DatePublished,

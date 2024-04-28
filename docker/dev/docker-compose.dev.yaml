@@ -1,0 +1,5 @@
+version: "3.8"
+services:
+  database:
+    ports:
+      - ${DEV_MYSQL_PORT}:3306

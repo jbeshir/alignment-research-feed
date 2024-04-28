@@ -10,5 +10,11 @@ type Article struct {
 	Link      string
 	TextStart string
 	Authors   string
+	Source    string
 	Published time.Time
+}
+
+type ArticleFilters struct {
+	OnlySources   []string
+	ExceptSources []string
 }

@@ -6,6 +6,8 @@ import (
 	"github.com/jbeshir/alignment-research-feed/internal/datasources"
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
 	"net/http"
+	"net/url"
+	"strings"
 	"time"
 )
 
@@ -27,7 +29,17 @@ func (c RSS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Created:     time.Now(),
 	}
 
-	articles, err := c.Dataset.ListLatestArticles(r.Context(), 100)
+	filters, err := articleFiltersFromQuery(r.URL.Query())
+	if err != nil {
+		ctx := r.Context()
+		logger := domain.LoggerFromContext(ctx)
+		logger.ErrorContext(ctx, "unable to parse article filters in query string", "error", err)
+
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	articles, err := c.Dataset.ListLatestArticles(r.Context(), filters, 100)
 	if err != nil {
 		ctx := r.Context()
 		logger := domain.LoggerFromContext(ctx)
@@ -69,4 +81,18 @@ func (c RSS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		logger := domain.LoggerFromContext(ctx)
 		logger.ErrorContext(ctx, "unable to write feed to response", "error", err)
 	}
+}
+
+func articleFiltersFromQuery(q url.Values) (domain.ArticleFilters, error) {
+	var filters domain.ArticleFilters
+
+	if q.Has("only_sources") {
+		filters.OnlySources = strings.Split(q.Get("only_sources"), ",")
+	}
+
+	if q.Has("except_sources") {
+		filters.ExceptSources = strings.Split(q.Get("except_sources"), ",")
+	}
+
+	return filters, nil
 }

@@ -4,7 +4,10 @@ COPY ../../go.mod ../../go.sum ./
 COPY ../../internal ./internal
 COPY ../../cmd ./cmd
 COPY ../../migrations ./migrations
-RUN go build -o /app ./cmd/app/app.go
+COPY ../../docker ./docker
+
+ARG RUN_BUILD=1
+RUN /source/docker/run-build.sh
 
 FROM alpine:latest
 WORKDIR /

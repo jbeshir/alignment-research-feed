@@ -10,5 +10,5 @@ type DatasetRepository interface {
 }
 
 type ArticleLister interface {
-	ListLatestArticles(ctx context.Context, limit int) ([]domain.Article, error)
+	ListLatestArticles(ctx context.Context, filters domain.ArticleFilters, limit int) ([]domain.Article, error)
 }

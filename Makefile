@@ -1,5 +1,5 @@
 SERVICE_NAME=alignment-research-feed
-DOCKER_COMMAND=docker-compose --env-file .env -p ${SERVICE_NAME} -f docker/dev/docker-compose.yaml
+DOCKER_COMMAND=docker compose --env-file .env -p ${SERVICE_NAME} -f docker/dev/docker-compose.yaml -f docker/dev/docker-compose.dev.yaml
 
 .PHONY setup-tools:
 setup-tools: setup-files
@@ -10,6 +10,10 @@ setup-tools: setup-files
 generate:
 	go generate ./...
 
+.PHONY test-short:
+test-short:
+	go test -v -short ./...
+
 .PHONY docker-up:
 docker-up:
 	${DOCKER_COMMAND} up
@@ -18,13 +22,18 @@ docker-up:
 docker-down:
 	${DOCKER_COMMAND} -v down
 
+.PHONY docker-test:
+docker-test:
+	docker compose --env-file .env.dist -p ${SERVICE_NAME}-test down -v
+	docker compose --env-file .env.dist -p ${SERVICE_NAME}-test -f docker/dev/docker-compose.yaml -f docker/dev/docker-compose.test.yaml up --build --abort-on-container-exit --exit-code-from testrunner
+
 .PHONY docker-migrate:
 docker-migrate:
 	godotenv bash -c 'docker run -v $${PWD}/migrations/dataset:/migrations --network host migrate/migrate -path=/migrations/ -database mysql://$${MYSQL_URI} up'
 
 .PHONY docker-build:
 docker-build:
-	docker build -t alignment-research-feed -f docker/release/Dockerfile .
+	docker build -t alignment-research-feed -f docker/Dockerfile .
 
 .PHONY docker-run:
 docker-run:
