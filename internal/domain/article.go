@@ -14,6 +14,10 @@ type Article struct {
 	PublishedAt time.Time `json:"published_at"`
 }
 
+type ArticleListMetadata struct {
+	TotalRows int `json:"total_rows"`
+}
+
 type ArticleFilters struct {
 	OnlySources   []string
 	ExceptSources []string

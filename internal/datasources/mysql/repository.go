@@ -62,3 +62,31 @@ func (r *Repository) ListLatestArticles(
 
 	return articles, nil
 }
+
+func (r *Repository) TotalMatchingArticles(
+	ctx context.Context,
+	filters domain.ArticleFilters,
+) (int64, error) {
+
+	onlySources := make([]sql.NullString, 0, len(filters.OnlySources))
+	for _, source := range filters.OnlySources {
+		onlySources = append(onlySources, sql.NullString{String: source, Valid: true})
+	}
+
+	exceptSources := make([]sql.NullString, 0, len(filters.ExceptSources))
+	for _, source := range filters.ExceptSources {
+		exceptSources = append(exceptSources, sql.NullString{String: source, Valid: true})
+	}
+
+	count, err := r.queries.TotalMatchingArticles(ctx, queries.TotalMatchingArticlesParams{
+		OnlySourcesFilter:   len(filters.OnlySources) > 0,
+		OnlySources:         onlySources,
+		ExceptSourcesFilter: len(filters.ExceptSources) > 0,
+		ExceptSources:       exceptSources,
+	})
+	if err != nil {
+		return 0, fmt.Errorf("counting matching articles: %w", err)
+	}
+
+	return count, nil
+}

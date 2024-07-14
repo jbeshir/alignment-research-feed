@@ -133,3 +133,45 @@ func (q *Queries) ListLatestArticles(ctx context.Context, arg ListLatestArticles
 	}
 	return items, nil
 }
+
+const totalMatchingArticles = `-- name: TotalMatchingArticles :one
+SELECT COUNT(*) FROM articles
+WHERE
+    (0 = ? OR source IN (/*SLICE:only_sources*/?))
+  AND (0 = ? OR source NOT IN (/*SLICE:except_sources*/?))
+ORDER BY date_published DESC
+`
+
+type TotalMatchingArticlesParams struct {
+	OnlySourcesFilter   interface{}
+	OnlySources         []sql.NullString
+	ExceptSourcesFilter interface{}
+	ExceptSources       []sql.NullString
+}
+
+func (q *Queries) TotalMatchingArticles(ctx context.Context, arg TotalMatchingArticlesParams) (int64, error) {
+	query := totalMatchingArticles
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.OnlySourcesFilter)
+	if len(arg.OnlySources) > 0 {
+		for _, v := range arg.OnlySources {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:only_sources*/?", strings.Repeat(",?", len(arg.OnlySources))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:only_sources*/?", "NULL", 1)
+	}
+	queryParams = append(queryParams, arg.ExceptSourcesFilter)
+	if len(arg.ExceptSources) > 0 {
+		for _, v := range arg.ExceptSources {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:except_sources*/?", strings.Repeat(",?", len(arg.ExceptSources))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:except_sources*/?", "NULL", 1)
+	}
+	row := q.db.QueryRowContext(ctx, query, queryParams...)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
