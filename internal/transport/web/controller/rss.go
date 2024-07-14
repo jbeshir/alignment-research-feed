@@ -59,7 +59,7 @@ func (c RSS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Author: &feeds.Author{
 				Name: a.Authors,
 			},
-			Created: a.Published,
+			Created: a.PublishedAt,
 		})
 	}
 

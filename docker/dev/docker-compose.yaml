@@ -8,5 +8,10 @@ services:
       MYSQL_PASSWORD: ${DEV_MYSQL_PASSWORD}
       MYSQL_DATABASE: ${DEV_MYSQL_DATABASE}
       MYSQL_PORT: 3306
+    volumes:
+      - mysql_database:/var/lib/mysql
     env_file:
       - ../../.env
+
+volumes:
+  mysql_database:

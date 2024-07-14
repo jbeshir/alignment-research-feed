@@ -17,6 +17,11 @@ func MakeRouter(
 ) (http.Handler, error) {
 	r := mux.NewRouter()
 
+	r.Handle("/v1/articles", controller.ArticlesList{
+		Dataset:     dataset,
+		CacheMaxAge: latestCacheMaxAge,
+	})
+
 	rssFeeds := []controller.RSS{
 		{
 			FeedHostname:    rssFeedBaseURL,

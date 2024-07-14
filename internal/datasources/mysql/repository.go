@@ -50,13 +50,13 @@ func (r *Repository) ListLatestArticles(
 	articles := []domain.Article{}
 	for _, article := range dbArticles {
 		articles = append(articles, domain.Article{
-			HashID:    article.HashID,
-			Title:     article.Title.String,
-			Link:      article.Url.String,
-			TextStart: article.TextStart,
-			Authors:   article.Authors,
-			Source:    article.Source.String,
-			Published: article.DatePublished.Time,
+			HashID:      article.HashID,
+			Title:       article.Title.String,
+			Link:        article.Url.String,
+			TextStart:   article.TextStart,
+			Authors:     article.Authors,
+			Source:      article.Source.String,
+			PublishedAt: article.DatePublished.Time,
 		})
 	}
 

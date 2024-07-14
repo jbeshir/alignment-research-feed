@@ -5,13 +5,13 @@ import (
 )
 
 type Article struct {
-	HashID    string
-	Title     string
-	Link      string
-	TextStart string
-	Authors   string
-	Source    string
-	Published time.Time
+	HashID      string    `json:"hash_id"`
+	Title       string    `json:"title"`
+	Link        string    `json:"link"`
+	TextStart   string    `json:"text_start"`
+	Authors     string    `json:"authors"`
+	Source      string    `json:"source"`
+	PublishedAt time.Time `json:"published_at"`
 }
 
 type ArticleFilters struct {
