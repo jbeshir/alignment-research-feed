@@ -17,7 +17,7 @@ WHERE
     (0 = sqlc.arg('only_sources_filter') OR source IN (sqlc.slice('only_sources')))
     AND (0 = sqlc.arg('except_sources_filter') OR source NOT IN (sqlc.slice('except_sources')))
 ORDER BY date_published DESC
-LIMIT ?;
+LIMIT ? OFFSET ?;
 
 -- name: TotalMatchingArticles :one
 SELECT COUNT(*) FROM articles

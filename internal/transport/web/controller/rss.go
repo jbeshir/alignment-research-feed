@@ -7,6 +7,7 @@ import (
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -39,7 +40,7 @@ func (c RSS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	articles, err := c.Dataset.ListLatestArticles(r.Context(), filters, 100)
+	articles, err := c.Dataset.ListLatestArticles(r.Context(), filters)
 	if err != nil {
 		ctx := r.Context()
 		logger := domain.LoggerFromContext(ctx)
@@ -92,6 +93,33 @@ func articleFiltersFromQuery(q url.Values) (domain.ArticleFilters, error) {
 
 	if q.Has("except_sources") {
 		filters.ExceptSources = strings.Split(q.Get("except_sources"), ",")
+	}
+
+	if q.Has("page") {
+		page, err := strconv.ParseInt(q.Get("page"), 10, 32)
+		if err != nil {
+			return domain.ArticleFilters{}, fmt.Errorf("unable to parse page from query: %w", err)
+		}
+		if page < 1 {
+			return domain.ArticleFilters{}, fmt.Errorf("invalid page value [%d]", page)
+		}
+		filters.Page = int(page)
+	} else {
+		filters.Page = 1
+	}
+
+	if q.Has("page_size") {
+		pageSize, err := strconv.ParseInt(q.Get("page_size"), 10, 32)
+		if err != nil {
+			return domain.ArticleFilters{}, fmt.Errorf("unable to parse page size from query: %w", err)
+		}
+		if pageSizeLimit := int64(200); pageSize > pageSizeLimit {
+			return domain.ArticleFilters{}, fmt.Errorf("page size [%d] exceeds limit [%d]",
+				pageSize, pageSizeLimit)
+		}
+		filters.PageSize = int(pageSize)
+	} else {
+		filters.PageSize = 100
 	}
 
 	return filters, nil

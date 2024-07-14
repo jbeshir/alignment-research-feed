@@ -19,6 +19,7 @@ type ArticleListMetadata struct {
 }
 
 type ArticleFilters struct {
-	OnlySources   []string
-	ExceptSources []string
+	OnlySources    []string
+	ExceptSources  []string
+	Page, PageSize int
 }

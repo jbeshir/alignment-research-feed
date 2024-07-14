@@ -24,7 +24,6 @@ func New(db *sql.DB) *Repository {
 func (r *Repository) ListLatestArticles(
 	ctx context.Context,
 	filters domain.ArticleFilters,
-	limit int,
 ) ([]domain.Article, error) {
 
 	onlySources := make([]sql.NullString, 0, len(filters.OnlySources))
@@ -42,7 +41,9 @@ func (r *Repository) ListLatestArticles(
 		OnlySources:         onlySources,
 		ExceptSourcesFilter: len(filters.ExceptSources) > 0,
 		ExceptSources:       exceptSources,
-		Limit:               int32(limit)})
+		Limit:               int32(filters.PageSize),
+		Offset:              int32((filters.Page - 1) * filters.PageSize),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("listing latest articles: %w", err)
 	}

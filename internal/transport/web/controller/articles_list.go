@@ -34,7 +34,7 @@ func (c ArticlesList) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	articles, err := c.Dataset.ListLatestArticles(r.Context(), filters, 100)
+	articles, err := c.Dataset.ListLatestArticles(r.Context(), filters)
 	if err != nil {
 		ctx := r.Context()
 		logger := domain.LoggerFromContext(ctx)

@@ -61,7 +61,7 @@ WHERE
     (0 = ? OR source IN (/*SLICE:only_sources*/?))
     AND (0 = ? OR source NOT IN (/*SLICE:except_sources*/?))
 ORDER BY date_published DESC
-LIMIT ?
+LIMIT ? OFFSET ?
 `
 
 type ListLatestArticlesParams struct {
@@ -70,6 +70,7 @@ type ListLatestArticlesParams struct {
 	ExceptSourcesFilter interface{}
 	ExceptSources       []sql.NullString
 	Limit               int32
+	Offset              int32
 }
 
 type ListLatestArticlesRow struct {
@@ -104,6 +105,7 @@ func (q *Queries) ListLatestArticles(ctx context.Context, arg ListLatestArticles
 		query = strings.Replace(query, "/*SLICE:except_sources*/?", "NULL", 1)
 	}
 	queryParams = append(queryParams, arg.Limit)
+	queryParams = append(queryParams, arg.Offset)
 	rows, err := q.db.QueryContext(ctx, query, queryParams...)
 	if err != nil {
 		return nil, err
