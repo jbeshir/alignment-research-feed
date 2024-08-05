@@ -7,6 +7,7 @@ import (
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
 	"net/http"
 	"net/url"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -40,7 +41,17 @@ func (c RSS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	articles, err := c.Dataset.ListLatestArticles(r.Context(), filters)
+	options, err := listOptionsFromQuery(r.URL.Query())
+	if err != nil {
+		ctx := r.Context()
+		logger := domain.LoggerFromContext(ctx)
+		logger.ErrorContext(ctx, "unable to parse article list options in query string", "error", err)
+
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	articles, err := c.Dataset.ListLatestArticles(r.Context(), filters, options)
 	if err != nil {
 		ctx := r.Context()
 		logger := domain.LoggerFromContext(ctx)
@@ -95,32 +106,59 @@ func articleFiltersFromQuery(q url.Values) (domain.ArticleFilters, error) {
 		filters.ExceptSources = strings.Split(q.Get("except_sources"), ",")
 	}
 
+	return filters, nil
+}
+
+func listOptionsFromQuery(q url.Values) (domain.ArticleListOptions, error) {
+	var options domain.ArticleListOptions
 	if q.Has("page") {
 		page, err := strconv.ParseInt(q.Get("page"), 10, 32)
 		if err != nil {
-			return domain.ArticleFilters{}, fmt.Errorf("unable to parse page from query: %w", err)
+			return domain.ArticleListOptions{}, fmt.Errorf("unable to parse page from query: %w", err)
 		}
 		if page < 1 {
-			return domain.ArticleFilters{}, fmt.Errorf("invalid page value [%d]", page)
+			return domain.ArticleListOptions{}, fmt.Errorf("invalid page value [%d]", page)
 		}
-		filters.Page = int(page)
+		options.Page = int(page)
 	} else {
-		filters.Page = 1
+		options.Page = 1
 	}
 
 	if q.Has("page_size") {
 		pageSize, err := strconv.ParseInt(q.Get("page_size"), 10, 32)
 		if err != nil {
-			return domain.ArticleFilters{}, fmt.Errorf("unable to parse page size from query: %w", err)
+			return domain.ArticleListOptions{}, fmt.Errorf("unable to parse page size from query: %w", err)
 		}
 		if pageSizeLimit := int64(200); pageSize > pageSizeLimit {
-			return domain.ArticleFilters{}, fmt.Errorf("page size [%d] exceeds limit [%d]",
+			return domain.ArticleListOptions{}, fmt.Errorf("page size [%d] exceeds limit [%d]",
 				pageSize, pageSizeLimit)
 		}
-		filters.PageSize = int(pageSize)
+		options.PageSize = int(pageSize)
 	} else {
-		filters.PageSize = 100
+		options.PageSize = 100
 	}
 
-	return filters, nil
+	if q.Has("sort") {
+		orderings := strings.Split(q.Get("sort"), ",")
+
+		for _, ordering := range orderings {
+			field := ordering
+			desc := false
+			if strings.HasSuffix(ordering, "_desc") {
+				field = ordering[:len(ordering)-5]
+				desc = true
+			}
+
+			if !slices.Contains(domain.ValidOrderingFields, domain.ArticleOrderingField(field)) {
+				return domain.ArticleListOptions{}, fmt.Errorf("unrecognised article ordering field: %s", field)
+			}
+
+			options.Ordering = append(options.Ordering, domain.ArticleOrdering{
+				Field: domain.ArticleOrderingField(field),
+				Desc:  desc,
+			})
+		}
+	}
+
+	return options, nil
 }

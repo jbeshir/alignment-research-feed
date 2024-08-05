@@ -10,6 +10,11 @@ type DatasetRepository interface {
 }
 
 type ArticleLister interface {
-	ListLatestArticles(ctx context.Context, filters domain.ArticleFilters) ([]domain.Article, error)
+	ListLatestArticles(
+		ctx context.Context,
+		filters domain.ArticleFilters,
+		options domain.ArticleListOptions,
+	) ([]domain.Article, error)
+
 	TotalMatchingArticles(ctx context.Context, filters domain.ArticleFilters) (int64, error)
 }

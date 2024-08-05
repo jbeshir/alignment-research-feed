@@ -34,7 +34,17 @@ func (c ArticlesList) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	articles, err := c.Dataset.ListLatestArticles(r.Context(), filters)
+	options, err := listOptionsFromQuery(r.URL.Query())
+	if err != nil {
+		ctx := r.Context()
+		logger := domain.LoggerFromContext(ctx)
+		logger.ErrorContext(ctx, "unable to parse article list options in query string", "error", err)
+
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	articles, err := c.Dataset.ListLatestArticles(r.Context(), filters, options)
 	if err != nil {
 		ctx := r.Context()
 		logger := domain.LoggerFromContext(ctx)

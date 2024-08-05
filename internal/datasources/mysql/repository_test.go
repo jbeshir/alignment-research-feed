@@ -132,7 +132,10 @@ func TestRepository_ListLatestArticles(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			sut := New(db)
 
-			results, err := sut.ListLatestArticles(context.Background(), c.filters, c.limit)
+			results, err := sut.ListLatestArticles(context.Background(), c.filters, domain.ArticleListOptions{
+				PageSize: 100,
+				Page:     1,
+			})
 			assert.NoError(t, err)
 			assert.Equal(t, c.expected, results)
 		})

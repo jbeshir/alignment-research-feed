@@ -19,7 +19,31 @@ type ArticleListMetadata struct {
 }
 
 type ArticleFilters struct {
-	OnlySources    []string
-	ExceptSources  []string
+	OnlySources   []string
+	ExceptSources []string
+}
+
+type ArticleListOptions struct {
+	Limit          int64
+	Ordering       []ArticleOrdering
 	Page, PageSize int
+}
+
+type ArticleOrdering struct {
+	Field ArticleOrderingField
+	Desc  bool
+}
+
+type ArticleOrderingField string
+
+const ArticleOrderingFieldPublishedAt ArticleOrderingField = "published_at"
+const ArticleOrderingFieldAuthors ArticleOrderingField = "authors"
+const ArticleOrderingFieldSource ArticleOrderingField = "source"
+const ArticleOrderingFieldTitle ArticleOrderingField = "title"
+
+var ValidOrderingFields = []ArticleOrderingField{
+	ArticleOrderingFieldPublishedAt,
+	ArticleOrderingFieldAuthors,
+	ArticleOrderingFieldSource,
+	ArticleOrderingFieldTitle,
 }
