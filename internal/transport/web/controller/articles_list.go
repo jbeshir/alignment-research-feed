@@ -19,9 +19,7 @@ type ArticlesListResponse struct {
 	Metadata ArticlesListMetadata `json:"metadata"`
 }
 
-type ArticlesListMetadata struct {
-	TotalRows int64 `json:"total_rows"`
-}
+type ArticlesListMetadata struct{}
 
 func (c ArticlesList) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	filters, err := articleFiltersFromQuery(r.URL.Query())
@@ -54,23 +52,13 @@ func (c ArticlesList) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	totalRows, err := c.Dataset.TotalMatchingArticles(r.Context(), filters)
-	if err != nil {
-		ctx := r.Context()
-		logger := domain.LoggerFromContext(ctx)
-		logger.ErrorContext(ctx, "unable to count matching articles", "error", err)
-
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", int(c.CacheMaxAge.Seconds())))
 
 	if err := json.NewEncoder(w).Encode(ArticlesListResponse{
 		Data:     articles,
-		Metadata: ArticlesListMetadata{TotalRows: totalRows},
+		Metadata: ArticlesListMetadata{},
 	}); err != nil {
 		ctx := r.Context()
 		logger := domain.LoggerFromContext(ctx)
