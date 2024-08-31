@@ -46,7 +46,7 @@ func (r *Repository) ListLatestArticles(
 	}
 
 	sb.OrderBy(orderings...)
-	sb.Offset(options.Page - 1*options.PageSize)
+	sb.Offset((options.Page - 1) * options.PageSize)
 	sb.Limit(options.PageSize)
 
 	query, args := sb.Build()
