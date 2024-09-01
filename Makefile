@@ -37,7 +37,7 @@ docker-build:
 
 .PHONY docker-run:
 docker-run:
-	godotenv bash -c 'docker run --env-file .env --expose $${HTTP_TLS_DISABLED_PORT} -p $${HTTP_TLS_DISABLED_PORT}:$${HTTP_TLS_DISABLED_PORT} alignment-research-feed'
+	godotenv bash -c 'docker run --env-file .env --expose $${PORT} -p $${PORT}:$${PORT} alignment-research-feed'
 
 .PHONY docker-mysql:
 docker-mysql:

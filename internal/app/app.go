@@ -34,7 +34,7 @@ func Setup(ctx context.Context) ([]Component, error) {
 	return []Component{
 		&server.Server{
 			TLSDisabled:       MustGetEnvAsBoolean(ctx, "HTTP_TLS_DISABLED"),
-			TLSDisabledPort:   MustGetEnvAsInt(ctx, "HTTP_TLS_DISABLED_PORT"),
+			TLSDisabledPort:   MustGetEnvAsInt(ctx, "PORT"),
 			AutocertHostnames: MustGetEnvAsStrings(ctx, "HTTP_AUTOCERT_HOSTNAMES"),
 			Router:            httpRouter,
 		},
