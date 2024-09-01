@@ -7,7 +7,7 @@ COPY ../../migrations ./migrations
 COPY ../../docker ./docker
 
 ARG RUN_BUILD=1
-RUN /source/docker/run-build.sh
+RUN sh /source/docker/run-build.sh
 
 FROM alpine:latest
 WORKDIR /

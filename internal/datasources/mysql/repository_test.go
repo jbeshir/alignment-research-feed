@@ -91,7 +91,7 @@ func TestRepository_ListLatestArticles(t *testing.T) {
 		{
 			name: "only_alignmentforum",
 			filters: domain.ArticleFilters{
-				OnlySources: []string{"alignmentforum"},
+				SourcesAllowlist: []string{"alignmentforum"},
 			},
 			limit: 100,
 			expected: []domain.Article{
@@ -109,7 +109,7 @@ func TestRepository_ListLatestArticles(t *testing.T) {
 		{
 			name: "except_alignmentforum",
 			filters: domain.ArticleFilters{
-				ExceptSources: []string{"alignmentforum"},
+				SourcesBlocklist: []string{"alignmentforum"},
 			},
 			limit: 100,
 			expected: []domain.Article{

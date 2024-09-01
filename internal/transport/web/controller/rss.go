@@ -98,12 +98,38 @@ func (c RSS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func articleFiltersFromQuery(q url.Values) (domain.ArticleFilters, error) {
 	var filters domain.ArticleFilters
 
-	if q.Has("only_sources") {
-		filters.OnlySources = strings.Split(q.Get("only_sources"), ",")
+	if v := q.Get("filter_sources_allowlist"); v != "" {
+		filters.SourcesAllowlist = strings.Split(v, ",")
 	}
 
-	if q.Has("except_sources") {
-		filters.ExceptSources = strings.Split(q.Get("except_sources"), ",")
+	if v := q.Get("filter_sources_blocklist"); v != "" {
+		filters.SourcesBlocklist = strings.Split(v, ",")
+	}
+
+	if v := q.Get("filter_title_fulltext"); v != "" {
+		filters.TitleFulltext = v
+	}
+
+	if v := q.Get("filter_authors_fulltext"); v != "" {
+		filters.AuthorsFulltext = v
+	}
+
+	if v := q.Get("filter_published_after"); v != "" {
+		parsed, err := time.Parse(time.RFC3339, v)
+		if err != nil {
+			return domain.ArticleFilters{}, fmt.Errorf("unable to parse filter_published_after: %w", err)
+		}
+
+		filters.PublishedAfter = parsed
+	}
+
+	if v := q.Get("filter_published_before"); v != "" {
+		parsed, err := time.Parse(time.RFC3339, v)
+		if err != nil {
+			return domain.ArticleFilters{}, fmt.Errorf("unable to parse filter_published_before: %w", err)
+		}
+
+		filters.PublishedBefore = parsed
 	}
 
 	return filters, nil

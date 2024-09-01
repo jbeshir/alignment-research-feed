@@ -8,6 +8,7 @@ import (
 	"github.com/jbeshir/alignment-research-feed/internal/datasources"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources/mysql/queries"
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
+	"time"
 )
 
 //go:generate sqlc generate
@@ -120,23 +121,40 @@ func (r *Repository) TotalMatchingArticles(
 
 func buildArticlesConditions(sb *sqlbuilder.SelectBuilder, filters domain.ArticleFilters) []string {
 	var conds []string
-	if len(filters.OnlySources) > 0 {
-		onlySources := make([]interface{}, 0, len(filters.OnlySources))
-		for _, source := range filters.OnlySources {
-			onlySources = append(onlySources, source)
+
+	if filters.TitleFulltext != "" {
+		conds = append(conds, "MATCH (title) AGAINST ("+sb.Args.Add(filters.TitleFulltext)+")")
+	}
+
+	if filters.AuthorsFulltext != "" {
+		conds = append(conds, "MATCH (authors) AGAINST ("+sb.Args.Add(filters.AuthorsFulltext)+")")
+	}
+
+	if filters.PublishedAfter != (time.Time{}) {
+		conds = append(conds, sb.GreaterEqualThan("date_published", filters.PublishedAfter))
+	}
+
+	if filters.PublishedBefore != (time.Time{}) {
+		conds = append(conds, sb.LessEqualThan("date_published", filters.PublishedBefore))
+	}
+
+	if len(filters.SourcesAllowlist) > 0 {
+		allowed := make([]interface{}, 0, len(filters.SourcesAllowlist))
+		for _, source := range filters.SourcesAllowlist {
+			allowed = append(allowed, source)
 		}
 
-		cond := sb.In("source", onlySources...)
+		cond := sb.In("source", allowed...)
 		conds = append(conds, cond)
 	}
 
-	if len(filters.ExceptSources) > 0 {
-		exceptSources := make([]interface{}, 0, len(filters.ExceptSources))
-		for _, source := range filters.ExceptSources {
-			exceptSources = append(exceptSources, source)
+	if len(filters.SourcesBlocklist) > 0 {
+		blocked := make([]interface{}, 0, len(filters.SourcesBlocklist))
+		for _, source := range filters.SourcesBlocklist {
+			blocked = append(blocked, source)
 		}
 
-		cond := sb.NotIn("source", exceptSources...)
+		cond := sb.NotIn("source", blocked...)
 		conds = append(conds, cond)
 	}
 

@@ -19,8 +19,12 @@ type ArticleListMetadata struct {
 }
 
 type ArticleFilters struct {
-	OnlySources   []string
-	ExceptSources []string
+	SourcesAllowlist []string
+	SourcesBlocklist []string
+	PublishedAfter   time.Time
+	PublishedBefore  time.Time
+	TitleFulltext    string
+	AuthorsFulltext  string
 }
 
 type ArticleListOptions struct {
