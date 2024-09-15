@@ -78,22 +78,20 @@ func (c *Client) ListSimilarArticles(ctx context.Context, hashID string, limit i
 	var results []domain.SimilarArticle
 	for len(results) < limit {
 		var filter *pinecone.MetadataFilter
-		if len(results) > 1 {
-			filterExistingIDs := []string{hashID}
-			for _, result := range results {
-				filterExistingIDs = append(filterExistingIDs, result.HashID)
-			}
+		filterExistingIDs := []any{hashID}
+		for _, result := range results {
+			filterExistingIDs = append(filterExistingIDs, result.HashID)
+		}
 
-			metadataMap := map[string]any{
-				"hash_id": map[string]any{
-					"$nin": filterExistingIDs,
-				},
-			}
+		metadataMap := map[string]any{
+			"hash_id": map[string]any{
+				"$nin": filterExistingIDs,
+			},
+		}
 
-			filter, err = structpb.NewStruct(metadataMap)
-			if err != nil {
-				return nil, fmt.Errorf("creating metadata filter map: %w", err)
-			}
+		filter, err = structpb.NewStruct(metadataMap)
+		if err != nil {
+			return nil, fmt.Errorf("creating metadata filter map: %w", err)
 		}
 
 		resp, err := idxConn.QueryByVectorValues(ctx, &pinecone.QueryByVectorValuesRequest{
