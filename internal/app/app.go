@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources/mysql"
+	"github.com/jbeshir/alignment-research-feed/internal/datasources/pinecone"
 	"github.com/jbeshir/alignment-research-feed/internal/transport/web/router"
 	"github.com/jbeshir/alignment-research-feed/internal/transport/web/server"
 )
@@ -19,9 +20,14 @@ func Setup(ctx context.Context) ([]Component, error) {
 		return nil, fmt.Errorf("setting up dataset repository: %w", err)
 	}
 
+	similarity, err := setupSimilarityRepository(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("setting up similarity repository: %w", err)
+	}
+
 	httpRouter, err := router.MakeRouter(
-		ctx,
 		dataset,
+		similarity,
 		MustGetEnvAsString(ctx, "RSS_FEED_BASE_URL"),
 		MustGetEnvAsString(ctx, "RSS_FEED_AUTHOR_NAME"),
 		MustGetEnvAsString(ctx, "RSS_FEED_AUTHOR_EMAIL"),
@@ -48,4 +54,20 @@ func setupDatasetRepository(ctx context.Context) (datasources.DatasetRepository,
 	}
 
 	return mysql.New(db), nil
+}
+
+func setupSimilarityRepository(ctx context.Context) (datasources.SimilarityRepository, error) {
+	switch driver := MustGetEnvAsString(ctx, "SIMILARITY_DRIVER"); driver {
+	case "null":
+		return datasources.NullSimilarityRepository{}, nil
+	case "pinecone":
+		similarity, err := pinecone.NewClient(ctx, MustGetEnvAsString(ctx, "PINECONE_API_KEY"))
+		if err != nil {
+			return nil, fmt.Errorf("connecting to pinecone: %w", err)
+		}
+
+		return similarity, nil
+	default:
+		return nil, fmt.Errorf("unknown similarity driver [%s]", driver)
+	}
 }

@@ -6,15 +6,21 @@ import (
 )
 
 type DatasetRepository interface {
-	ArticleLister
+	LatestArticleLister
+	ArticleFetcher
 }
 
-type ArticleLister interface {
+type ArticleFetcher interface {
+	FetchArticlesByID(
+		ctx context.Context,
+		hashIDs []string,
+	) ([]domain.Article, error)
+}
+
+type LatestArticleLister interface {
 	ListLatestArticles(
 		ctx context.Context,
 		filters domain.ArticleFilters,
 		options domain.ArticleListOptions,
 	) ([]domain.Article, error)
-
-	TotalMatchingArticles(ctx context.Context, filters domain.ArticleFilters) (int64, error)
 }

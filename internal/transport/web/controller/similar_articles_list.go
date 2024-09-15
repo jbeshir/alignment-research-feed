@@ -9,40 +9,31 @@ import (
 	"time"
 )
 
-type ArticlesList struct {
-	Lister      datasources.LatestArticleLister
+type SimilarArticlesList struct {
+	Fetcher     datasources.ArticleFetcher
+	Similarity  datasources.SimilarArticleLister
 	CacheMaxAge time.Duration
 }
 
-type ArticlesListResponse struct {
-	Data     []domain.Article     `json:"data"`
-	Metadata ArticlesListMetadata `json:"metadata"`
-}
+func (c SimilarArticlesList) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	articleID := r.PathValue("article_id")
 
-type ArticlesListMetadata struct{}
-
-func (c ArticlesList) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	filters, err := articleFiltersFromQuery(r.URL.Query())
+	similarArticles, err := c.Similarity.ListSimilarArticles(r.Context(), articleID, 10)
 	if err != nil {
 		ctx := r.Context()
 		logger := domain.LoggerFromContext(ctx)
-		logger.ErrorContext(ctx, "unable to parse article filters in query string", "error", err)
+		logger.ErrorContext(ctx, "unable to fetch similar articles", "error", err)
 
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	options, err := listOptionsFromQuery(r.URL.Query())
-	if err != nil {
-		ctx := r.Context()
-		logger := domain.LoggerFromContext(ctx)
-		logger.ErrorContext(ctx, "unable to parse article list options in query string", "error", err)
-
-		w.WriteHeader(http.StatusBadRequest)
-		return
+	ids := make([]string, 0, len(similarArticles))
+	for _, similar := range similarArticles {
+		ids = append(ids, similar.HashID)
 	}
 
-	articles, err := c.Lister.ListLatestArticles(r.Context(), filters, options)
+	articles, err := c.Fetcher.FetchArticlesByID(r.Context(), ids)
 	if err != nil {
 		ctx := r.Context()
 		logger := domain.LoggerFromContext(ctx)

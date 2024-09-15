@@ -38,6 +38,11 @@ type ArticleOrdering struct {
 	Desc  bool
 }
 
+type SimilarArticle struct {
+	HashID string
+	Score  float64
+}
+
 type ArticleOrderingField string
 
 const ArticleOrderingFieldPublishedAt ArticleOrderingField = "published_at"

@@ -55,6 +55,18 @@ func setupTestDB(t *testing.T) *sql.DB {
 	return db
 }
 
+func teardownTestDB(t *testing.T, db *sql.DB) {
+	if testing.Short() {
+		t.Skip("skipping MySQL integration tests in short mode")
+	}
+
+	_, err := db.ExecContext(context.Background(), "DELETE FROM articles")
+	assert.NoError(t, err)
+
+	err = db.Close()
+	assert.NoError(t, err)
+}
+
 func TestRepository_ListLatestArticles(t *testing.T) {
 
 	cases := []struct {
@@ -127,6 +139,7 @@ func TestRepository_ListLatestArticles(t *testing.T) {
 	}
 
 	db := setupTestDB(t)
+	defer teardownTestDB(t, db)
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -136,6 +149,73 @@ func TestRepository_ListLatestArticles(t *testing.T) {
 				PageSize: 100,
 				Page:     1,
 			})
+			assert.NoError(t, err)
+			assert.Equal(t, c.expected, results)
+		})
+	}
+}
+
+func TestRepository_FetchArticlesByID(t *testing.T) {
+
+	cases := []struct {
+		name     string
+		ids      []string
+		expected []domain.Article
+	}{
+		{
+			name: "two_results",
+			ids:  []string{"59c45352ef0608a50c51afe9afbc23c3", "6a429bf5788aa30893172643f892fb74"},
+			expected: []domain.Article{
+				{
+					HashID:      "59c45352ef0608a50c51afe9afbc23c3",
+					Title:       "Constructability: Plainly-coded AGIs may be feasible in the near future",
+					Link:        "https://www.lesswrong.com/posts/y9tnz27oLmtLxcrEF/constructability-plainly-coded-agis-may-be-feasible-in-the",
+					Source:      "lesswrong",
+					TextStart:   "Post text 2",
+					Authors:     "Épiphanie Gédéon,Charbel-Raphaël",
+					PublishedAt: time.Date(2024, 4, 27, 16, 04, 46, 0, time.UTC),
+				},
+				{
+					HashID:      "6a429bf5788aa30893172643f892fb74",
+					Title:       "Refusal in LLMs is mediated by a single direction",
+					Link:        "https://www.alignmentforum.org/posts/jGuXSZgv6qfdhMCuJ/refusal-in-llms-is-mediated-by-a-single-direction",
+					Source:      "alignmentforum",
+					TextStart:   "Post text 1",
+					Authors:     "Andy Arditi,Oscar Obeso,Aaquib111,wesg,Neel Nanda",
+					PublishedAt: time.Date(2024, 4, 27, 11, 13, 6, 0, time.UTC),
+				},
+			},
+		},
+		{
+			name: "one_result",
+			ids:  []string{"6a429bf5788aa30893172643f892fb74", "does-not-exist"},
+			expected: []domain.Article{
+				{
+					HashID:      "6a429bf5788aa30893172643f892fb74",
+					Title:       "Refusal in LLMs is mediated by a single direction",
+					Link:        "https://www.alignmentforum.org/posts/jGuXSZgv6qfdhMCuJ/refusal-in-llms-is-mediated-by-a-single-direction",
+					Source:      "alignmentforum",
+					TextStart:   "Post text 1",
+					Authors:     "Andy Arditi,Oscar Obeso,Aaquib111,wesg,Neel Nanda",
+					PublishedAt: time.Date(2024, 4, 27, 11, 13, 6, 0, time.UTC),
+				},
+			},
+		},
+		{
+			name:     "no_results",
+			ids:      []string{"does-not-exist"},
+			expected: []domain.Article{},
+		},
+	}
+
+	db := setupTestDB(t)
+	defer teardownTestDB(t, db)
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			sut := New(db)
+
+			results, err := sut.FetchArticlesByID(context.Background(), c.ids)
 			assert.NoError(t, err)
 			assert.Equal(t, c.expected, results)
 		})

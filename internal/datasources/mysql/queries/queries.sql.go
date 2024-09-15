@@ -8,8 +8,73 @@ package queries
 import (
 	"context"
 	"database/sql"
+	"strings"
 	"time"
 )
+
+const fetchArticlesByID = `-- name: FetchArticlesByID :many
+SELECT
+    hash_id,
+    title,
+    url,
+    source,
+    LEFT(COALESCE(text, ''), 500) as text_start,
+    authors,
+    date_published
+FROM articles
+WHERE hash_id IN (/*SLICE:hash_ids*/?)
+`
+
+type FetchArticlesByIDRow struct {
+	HashID        string
+	Title         sql.NullString
+	Url           sql.NullString
+	Source        sql.NullString
+	TextStart     string
+	Authors       string
+	DatePublished sql.NullTime
+}
+
+func (q *Queries) FetchArticlesByID(ctx context.Context, hashIds []string) ([]FetchArticlesByIDRow, error) {
+	query := fetchArticlesByID
+	var queryParams []interface{}
+	if len(hashIds) > 0 {
+		for _, v := range hashIds {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:hash_ids*/?", strings.Repeat(",?", len(hashIds))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:hash_ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FetchArticlesByIDRow
+	for rows.Next() {
+		var i FetchArticlesByIDRow
+		if err := rows.Scan(
+			&i.HashID,
+			&i.Title,
+			&i.Url,
+			&i.Source,
+			&i.TextStart,
+			&i.Authors,
+			&i.DatePublished,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
 
 const insertArticle = `-- name: InsertArticle :exec
 INSERT INTO articles (

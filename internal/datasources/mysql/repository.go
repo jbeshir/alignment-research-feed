@@ -95,6 +95,32 @@ func (r *Repository) ListLatestArticles(
 	return articles, nil
 }
 
+func (r *Repository) FetchArticlesByID(
+	ctx context.Context,
+	hashIDs []string,
+) ([]domain.Article, error) {
+
+	dbArticles, err := r.queries.FetchArticlesByID(ctx, hashIDs)
+	if err != nil {
+		return nil, fmt.Errorf("fetching articles by ID: %w", err)
+	}
+
+	articles := make([]domain.Article, 0, len(dbArticles))
+	for _, dbArticle := range dbArticles {
+		articles = append(articles, domain.Article{
+			HashID:      dbArticle.HashID,
+			Title:       dbArticle.Title.String,
+			Link:        dbArticle.Url.String,
+			TextStart:   dbArticle.TextStart,
+			Authors:     dbArticle.Authors,
+			Source:      dbArticle.Source.String,
+			PublishedAt: dbArticle.DatePublished.Time,
+		})
+	}
+
+	return articles, nil
+}
+
 func (r *Repository) TotalMatchingArticles(
 	ctx context.Context,
 	filters domain.ArticleFilters,

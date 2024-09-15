@@ -1,8 +1,6 @@
 package router
 
 import (
-	"context"
-	"github.com/gorilla/mux"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources"
 	"github.com/jbeshir/alignment-research-feed/internal/transport/web/controller"
 	"net/http"
@@ -10,16 +8,22 @@ import (
 )
 
 func MakeRouter(
-	ctx context.Context,
 	dataset datasources.DatasetRepository,
+	similiarity datasources.SimilarityRepository,
 	rssFeedBaseURL, rssFeedAuthorName, rssFeedAuthorEmail string,
 	latestCacheMaxAge time.Duration,
 ) (http.Handler, error) {
-	r := mux.NewRouter()
+	r := http.NewServeMux()
 
 	r.Handle("/v1/articles", controller.ArticlesList{
-		Dataset:     dataset,
+		Lister:      dataset,
 		CacheMaxAge: latestCacheMaxAge,
+	})
+
+	r.Handle("/v1/articles/{article_id}/similar", controller.SimilarArticlesList{
+		Fetcher:     dataset,
+		Similarity:  similiarity,
+		CacheMaxAge: 0,
 	})
 
 	rssFeeds := []controller.RSS{
