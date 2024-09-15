@@ -13,8 +13,8 @@ import (
 var _ datasources.SimilarityRepository = (*Client)(nil)
 
 type Client struct {
-	pinecone      *pinecone.Client
-	idxConnection *pinecone.IndexConnection
+	pinecone *pinecone.Client
+	index    *pinecone.Index
 }
 
 func NewClient(
@@ -33,16 +33,9 @@ func NewClient(
 		return nil, fmt.Errorf("retrieving pinecone index metadata for dataset: %w", err)
 	}
 
-	idxConn, err := pc.Index(pinecone.NewIndexConnParams{
-		Host: idx.Host,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("creating pinecone index connection: %w", err)
-	}
-
 	return &Client{
-		pinecone:      pc,
-		idxConnection: idxConn,
+		pinecone: pc,
+		index:    idx,
 	}, nil
 }
 
@@ -51,9 +44,18 @@ func (c *Client) ListSimilarArticles(ctx context.Context, hashID string, limit i
 		return nil, fmt.Errorf("limit value too high [%d]", limit)
 	}
 
+	idxConn, err := c.pinecone.Index(pinecone.NewIndexConnParams{
+		Host:      c.index.Host,
+		Namespace: "normal",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating pinecone index connection: %w", err)
+	}
+	defer idxConn.Close()
+
 	baseVectorPrefix := hashID + "_"
 	baseVectorLimit := uint32(20)
-	baseVectorIDsResp, err := c.idxConnection.ListVectors(ctx, &pinecone.ListVectorsRequest{
+	baseVectorIDsResp, err := idxConn.ListVectors(ctx, &pinecone.ListVectorsRequest{
 		Prefix:          &baseVectorPrefix,
 		Limit:           &baseVectorLimit,
 		PaginationToken: nil,
@@ -66,7 +68,7 @@ func (c *Client) ListSimilarArticles(ctx context.Context, hashID string, limit i
 	for _, id := range baseVectorIDsResp.VectorIds {
 		baseVectorIDs = append(baseVectorIDs, *id)
 	}
-	baseVectorsResp, err := c.idxConnection.FetchVectors(ctx, baseVectorIDs)
+	baseVectorsResp, err := idxConn.FetchVectors(ctx, baseVectorIDs)
 	if err != nil {
 		return nil, fmt.Errorf("fetching vectors for base article: %w", err)
 	}
@@ -94,7 +96,7 @@ func (c *Client) ListSimilarArticles(ctx context.Context, hashID string, limit i
 			}
 		}
 
-		resp, err := c.idxConnection.QueryByVectorValues(ctx, &pinecone.QueryByVectorValuesRequest{
+		resp, err := idxConn.QueryByVectorValues(ctx, &pinecone.QueryByVectorValuesRequest{
 			Vector:          searchVector,
 			TopK:            10,
 			MetadataFilter:  filter,
