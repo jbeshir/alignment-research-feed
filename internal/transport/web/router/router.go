@@ -20,6 +20,11 @@ func MakeRouter(
 		CacheMaxAge: latestCacheMaxAge,
 	})
 
+	r.Handle("/v1/articles/{article_id}", controller.ArticleGet{
+		Fetcher:     dataset,
+		CacheMaxAge: latestCacheMaxAge,
+	})
+
 	r.Handle("/v1/articles/{article_id}/similar", controller.SimilarArticlesList{
 		Fetcher:     dataset,
 		Similarity:  similiarity,
