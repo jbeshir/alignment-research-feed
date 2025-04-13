@@ -3,6 +3,7 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources"
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
 	"net/http"
@@ -15,7 +16,8 @@ type ArticleGet struct {
 }
 
 func (c ArticleGet) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("article_id")
+	vars := mux.Vars(r)
+	id := vars["article_id"]
 
 	articles, err := c.Fetcher.FetchArticlesByID(r.Context(), []string{id})
 	if err != nil {
@@ -27,8 +29,6 @@ func (c ArticleGet) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Authorization")
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", int(c.CacheMaxAge.Seconds())))
 

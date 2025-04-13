@@ -1,6 +1,7 @@
 package router
 
 import (
+	"github.com/gorilla/mux"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources"
 	"github.com/jbeshir/alignment-research-feed/internal/transport/web/controller"
 	"net/http"
@@ -13,7 +14,8 @@ func MakeRouter(
 	rssFeedBaseURL, rssFeedAuthorName, rssFeedAuthorEmail string,
 	latestCacheMaxAge time.Duration,
 ) (http.Handler, error) {
-	r := http.NewServeMux()
+	r := mux.NewRouter()
+	r.Use(corsMiddleware)
 
 	r.Handle("/v1/articles", controller.ArticlesList{
 		Lister:      dataset,

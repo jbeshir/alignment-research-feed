@@ -3,6 +3,7 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/mux"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources"
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
 	"net/http"
@@ -16,12 +17,21 @@ type SimilarArticlesList struct {
 }
 
 func (c SimilarArticlesList) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	articleID := r.PathValue("article_id")
+	vars := mux.Vars(r)
+	articleID := vars["article_id"]
 
-	similarArticles, err := c.Similarity.ListSimilarArticles(r.Context(), articleID, 10)
+	ctx := r.Context()
+	logger := domain.LoggerFromContext(ctx)
+
+	if articleID == "" {
+		logger.ErrorContext(ctx, "article_id not set in request")
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	similarArticles, err := c.Similarity.ListSimilarArticles(ctx, articleID, 10)
 	if err != nil {
-		ctx := r.Context()
-		logger := domain.LoggerFromContext(ctx)
 		logger.ErrorContext(ctx, "unable to fetch similar articles", "error", err)
 
 		w.WriteHeader(http.StatusInternalServerError)
@@ -33,7 +43,7 @@ func (c SimilarArticlesList) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		ids = append(ids, similar.HashID)
 	}
 
-	articles, err := c.Fetcher.FetchArticlesByID(r.Context(), ids)
+	articles, err := c.Fetcher.FetchArticlesByID(ctx, ids)
 	if err != nil {
 		ctx := r.Context()
 		logger := domain.LoggerFromContext(ctx)
@@ -43,8 +53,6 @@ func (c SimilarArticlesList) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "Authorization")
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", int(c.CacheMaxAge.Seconds())))
 

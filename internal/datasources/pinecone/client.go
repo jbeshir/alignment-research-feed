@@ -61,7 +61,10 @@ func (c *Client) ListSimilarArticles(ctx context.Context, hashID string, limit i
 		PaginationToken: nil,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("listing vector IDs for base article: %w", err)
+		return nil, fmt.Errorf("listing vector IDs for base article [%s]: %w", hashID, err)
+	}
+	if len(baseVectorIDsResp.VectorIds) == 0 {
+		return nil, fmt.Errorf("no vectors IDs found for article [%s]", hashID)
 	}
 
 	var baseVectorIDs []string
@@ -70,7 +73,7 @@ func (c *Client) ListSimilarArticles(ctx context.Context, hashID string, limit i
 	}
 	baseVectorsResp, err := idxConn.FetchVectors(ctx, baseVectorIDs)
 	if err != nil {
-		return nil, fmt.Errorf("fetching vectors for base article: %w", err)
+		return nil, fmt.Errorf("fetching vectors for base article [%s]: %w", hashID, err)
 	}
 
 	searchVector := averageVectorValues(baseVectorsResp.Vectors)
