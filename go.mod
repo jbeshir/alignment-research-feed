@@ -3,6 +3,7 @@ module github.com/jbeshir/alignment-research-feed
 go 1.24.1
 
 require (
+	github.com/auth0/go-jwt-middleware/v2 v2.3.0
 	github.com/go-sql-driver/mysql v1.9.2
 	github.com/gorilla/feeds v1.2.0
 	github.com/gorilla/mux v1.8.1
@@ -29,6 +30,7 @@ require (
 	google.golang.org/genproto/googleapis/api v0.0.0-20250414145226-207652e42e2e // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250414145226-207652e42e2e // indirect
 	google.golang.org/grpc v1.71.1 // indirect
+	gopkg.in/go-jose/go-jose.v2 v2.6.3 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

@@ -8,6 +8,7 @@ import (
 	"github.com/jbeshir/alignment-research-feed/internal/datasources/pinecone"
 	"github.com/jbeshir/alignment-research-feed/internal/transport/web/router"
 	"github.com/jbeshir/alignment-research-feed/internal/transport/web/server"
+	"net/http"
 )
 
 type Component interface {
@@ -25,6 +26,11 @@ func Setup(ctx context.Context) ([]Component, error) {
 		return nil, fmt.Errorf("setting up similarity repository: %w", err)
 	}
 
+	authMiddleware, err := setupAuthMiddleware(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("setting up auth middleware: %w", err)
+	}
+
 	httpRouter, err := router.MakeRouter(
 		dataset,
 		similarity,
@@ -32,6 +38,7 @@ func Setup(ctx context.Context) ([]Component, error) {
 		MustGetEnvAsString(ctx, "RSS_FEED_AUTHOR_NAME"),
 		MustGetEnvAsString(ctx, "RSS_FEED_AUTHOR_EMAIL"),
 		MustGetEnvAsDuration(ctx, "RSS_FEED_LATEST_CACHE_MAX_AGE"),
+		authMiddleware,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create HTTP router: %w", err)
@@ -69,5 +76,20 @@ func setupSimilarityRepository(ctx context.Context) (datasources.SimilarityRepos
 		return similarity, nil
 	default:
 		return nil, fmt.Errorf("unknown similarity driver [%s]", driver)
+	}
+}
+
+func setupAuthMiddleware(ctx context.Context) (func(http.Handler) http.Handler, error) {
+	switch driver := MustGetEnvAsString(ctx, "AUTH_DRIVER"); driver {
+	case "null":
+		return func(next http.Handler) http.Handler {
+			return next
+		}, nil
+	case "auth0":
+		return router.SetupAuth0Middleware(
+			MustGetEnvAsString(ctx, "AUTH0_DOMAIN"),
+			MustGetEnvAsString(ctx, "AUTH0_AUDIENCE"))
+	default:
+		return nil, fmt.Errorf("unknown auth driver [%s]", driver)
 	}
 }

@@ -30,6 +30,14 @@ type Article struct {
 	DateChecked    time.Time
 }
 
+type ArticleRating struct {
+	ArticleHashID string
+	UserID        string
+	HaveRead      sql.NullBool
+	ThumbsUp      sql.NullBool
+	ThumbsDown    sql.NullBool
+}
+
 type Summary struct {
 	ID        int32
 	Text      string

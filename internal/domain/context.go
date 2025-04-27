@@ -21,3 +21,17 @@ func LoggerFromContext(ctx context.Context) *slog.Logger {
 
 	return logger.(*slog.Logger)
 }
+
+const userContextKey contextKey = "user"
+
+func ContextWithUserID(ctx context.Context, userID string) context.Context {
+	return context.WithValue(ctx, userContextKey, userID)
+}
+
+func UserIDFromContext(ctx context.Context) string {
+	userID := ctx.Value(userContextKey)
+	if userID == nil {
+		userID = ""
+	}
+	return userID.(string)
+}

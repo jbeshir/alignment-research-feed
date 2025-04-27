@@ -20,6 +20,10 @@ type Repository struct {
 	queries *queries.Queries
 }
 
+func (r *Repository) MarkArticleRead(ctx context.Context, userID, hashID string) error {
+	return r.queries.MarkArticleRead(ctx, queries.MarkArticleReadParams{ArticleHashID: hashID, UserID: userID})
+}
+
 func New(db *sql.DB) *Repository {
 	return &Repository{db: db, queries: queries.New(db)}
 }
@@ -74,7 +78,7 @@ func (r *Repository) ListLatestArticles(
 			&i.Authors,
 			&datePublished,
 		); err != nil {
-			return nil, fmt.Errorf("scanning articleL %w", err)
+			return nil, fmt.Errorf("scanning articles: %w", err)
 		}
 
 		// Just send nulls through as zero values
