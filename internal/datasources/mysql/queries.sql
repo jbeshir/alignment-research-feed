@@ -23,12 +23,12 @@ SELECT
 FROM articles
 WHERE hash_id IN (sqlc.slice('hash_ids'));
 
--- name: MarkArticleRead :exec
+-- name: SetArticleRead :exec
 INSERT INTO article_ratings (
         article_hash_id,
         user_id,
         have_read,
         thumbs_up,
         thumbs_down
-    ) VALUES (?, ?, TRUE, FALSE, FALSE)
-ON DUPLICATE KEY UPDATE have_read = TRUE;
+    ) VALUES (?, ?, sqlc.arg(have_read), FALSE, FALSE)
+ON DUPLICATE KEY UPDATE have_read = sqlc.arg(have_read);

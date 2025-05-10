@@ -20,8 +20,12 @@ type Repository struct {
 	queries *queries.Queries
 }
 
-func (r *Repository) MarkArticleRead(ctx context.Context, userID, hashID string) error {
-	return r.queries.MarkArticleRead(ctx, queries.MarkArticleReadParams{ArticleHashID: hashID, UserID: userID})
+func (r *Repository) SetArticleRead(ctx context.Context, userID, hashID string, read bool) error {
+	return r.queries.SetArticleRead(ctx, queries.SetArticleReadParams{
+		ArticleHashID: hashID,
+		UserID:        userID,
+		HaveRead:      sql.NullBool{Bool: read, Valid: true},
+	})
 }
 
 func New(db *sql.DB) *Repository {
