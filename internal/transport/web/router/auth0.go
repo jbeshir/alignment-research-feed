@@ -49,6 +49,7 @@ func SetupAuth0Middleware(auth0Domain, auth0Audience string) (func(http.Handler)
 		mwHandler := middleware.CheckJWT(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token := r.Context().Value(jwtmiddleware.ContextKey{}).(*validator.ValidatedClaims)
 			ctx := domain.ContextWithUserID(r.Context(), token.RegisteredClaims.Subject)
+
 			r = r.WithContext(ctx)
 			next.ServeHTTP(w, r)
 		}))
