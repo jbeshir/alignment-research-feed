@@ -35,9 +35,8 @@ func MakeRouter(
 		CacheMaxAge: 0,
 	})
 
-	r.Handle("/v1/articles/{article_id}/mark-read", requireAuthMiddleware(controller.ArticleGet{
-		Fetcher:     dataset,
-		CacheMaxAge: latestCacheMaxAge,
+	r.Handle("/v1/articles/{article_id}/read/{read}", requireAuthMiddleware(controller.ArticleReadSet{
+		ReadSetter: dataset,
 	})).Methods(http.MethodPost)
 
 	rssFeeds := []controller.RSS{
