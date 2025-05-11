@@ -36,6 +36,7 @@ func MakeRouter(
 	}).Methods(http.MethodGet, http.MethodOptions)
 
 	r.Handle("/v1/articles/{article_id}/read/{read}", requireAuthMiddleware(controller.ArticleReadSet{
+		Fetcher:    dataset,
 		ReadSetter: dataset,
 	})).Methods(http.MethodPost, http.MethodOptions)
 

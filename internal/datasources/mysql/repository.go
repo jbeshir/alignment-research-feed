@@ -20,7 +20,7 @@ type Repository struct {
 	queries *queries.Queries
 }
 
-func (r *Repository) SetArticleRead(ctx context.Context, userID, hashID string, read bool) error {
+func (r *Repository) SetArticleRead(ctx context.Context, hashID, userID string, read bool) error {
 	return r.queries.SetArticleRead(ctx, queries.SetArticleReadParams{
 		ArticleHashID: hashID,
 		UserID:        userID,
