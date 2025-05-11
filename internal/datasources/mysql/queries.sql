@@ -21,4 +21,14 @@ SELECT
     authors,
     date_published
 FROM articles
-WHERE hash_id IN (sqlc.slice('hash_ids'))
+WHERE hash_id IN (sqlc.slice('hash_ids'));
+
+-- name: MarkArticleRead :exec
+INSERT INTO article_ratings (
+        article_hash_id,
+        user_id,
+        have_read,
+        thumbs_up,
+        thumbs_down
+    ) VALUES (?, ?, TRUE, FALSE, FALSE)
+ON DUPLICATE KEY UPDATE have_read = TRUE;

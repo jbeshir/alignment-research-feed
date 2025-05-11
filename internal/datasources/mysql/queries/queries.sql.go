@@ -118,3 +118,24 @@ func (q *Queries) InsertArticle(ctx context.Context, arg InsertArticleParams) er
 	)
 	return err
 }
+
+const markArticleRead = `-- name: MarkArticleRead :exec
+INSERT INTO article_ratings (
+        article_hash_id,
+        user_id,
+        have_read,
+        thumbs_up,
+        thumbs_down
+    ) VALUES (?, ?, TRUE, FALSE, FALSE)
+ON DUPLICATE KEY UPDATE have_read = TRUE
+`
+
+type MarkArticleReadParams struct {
+	ArticleHashID string
+	UserID        string
+}
+
+func (q *Queries) MarkArticleRead(ctx context.Context, arg MarkArticleReadParams) error {
+	_, err := q.db.ExecContext(ctx, markArticleRead, arg.ArticleHashID, arg.UserID)
+	return err
+}

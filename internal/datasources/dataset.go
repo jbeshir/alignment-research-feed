@@ -8,6 +8,7 @@ import (
 type DatasetRepository interface {
 	LatestArticleLister
 	ArticleFetcher
+	ArticleReadMarker
 }
 
 type ArticleFetcher interface {
@@ -15,6 +16,14 @@ type ArticleFetcher interface {
 		ctx context.Context,
 		hashIDs []string,
 	) ([]domain.Article, error)
+}
+
+type ArticleReadMarker interface {
+	MarkArticleRead(
+		ctx context.Context,
+		hashID string,
+		userID string,
+	) error
 }
 
 type LatestArticleLister interface {

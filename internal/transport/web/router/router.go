@@ -13,9 +13,11 @@ func MakeRouter(
 	similiarity datasources.SimilarityRepository,
 	rssFeedBaseURL, rssFeedAuthorName, rssFeedAuthorEmail string,
 	latestCacheMaxAge time.Duration,
+	authMiddleware func(http.Handler) http.Handler,
 ) (http.Handler, error) {
 	r := mux.NewRouter()
 	r.Use(corsMiddleware)
+	r.Use(authMiddleware)
 
 	r.Handle("/v1/articles", controller.ArticlesList{
 		Lister:      dataset,
@@ -32,6 +34,11 @@ func MakeRouter(
 		Similarity:  similiarity,
 		CacheMaxAge: 0,
 	})
+
+	r.Handle("/v1/articles/{article_id}/mark-read", requireAuthMiddleware(controller.ArticleGet{
+		Fetcher:     dataset,
+		CacheMaxAge: latestCacheMaxAge,
+	})).Methods(http.MethodPost)
 
 	rssFeeds := []controller.RSS{
 		{
