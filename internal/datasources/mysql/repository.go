@@ -37,12 +37,16 @@ func (r *Repository) ListLatestArticles(
 	filters domain.ArticleFilters,
 	options domain.ArticleListOptions,
 ) ([]domain.Article, error) {
+	userID := domain.UserIDFromContext(ctx)
 
 	sb := sqlbuilder.Select(
 		"hash_id", "title", "url", "source",
 		"LEFT(COALESCE(text, ''), 500) as text_start",
-		"authors", "date_published")
+		"authors", "date_published", "have_read", "thumbs_up", "thumbs_down")
 	sb.From("articles")
+	sb.JoinWithOption(sqlbuilder.LeftJoin, "article_ratings",
+		"articles.hash_id = article_ratings.article_hash_id",
+		"article_ratings.user_id = "+sb.Args.Add(userID))
 
 	conds := buildArticlesConditions(sb, filters)
 	if len(conds) > 0 {
@@ -72,6 +76,9 @@ func (r *Repository) ListLatestArticles(
 		var url sql.NullString
 		var source sql.NullString
 		var datePublished sql.NullTime
+		var haveRead sql.NullBool
+		var thumbsUp sql.NullBool
+		var thumbsDown sql.NullBool
 
 		if err := rows.Scan(
 			&i.HashID,
@@ -81,6 +88,9 @@ func (r *Repository) ListLatestArticles(
 			&i.TextStart,
 			&i.Authors,
 			&datePublished,
+			&haveRead,
+			&thumbsUp,
+			&thumbsDown,
 		); err != nil {
 			return nil, fmt.Errorf("scanning articles: %w", err)
 		}
@@ -90,6 +100,15 @@ func (r *Repository) ListLatestArticles(
 		i.Link = url.String
 		i.Source = source.String
 		i.PublishedAt = datePublished.Time
+		if haveRead.Valid {
+			i.HaveRead = &haveRead.Bool
+		}
+		if thumbsUp.Valid {
+			i.ThumbsUp = &thumbsUp.Bool
+		}
+		if thumbsDown.Valid {
+			i.ThumbsDown = &thumbsDown.Bool
+		}
 
 		articles = append(articles, i)
 	}
@@ -108,7 +127,10 @@ func (r *Repository) FetchArticlesByID(
 	hashIDs []string,
 ) ([]domain.Article, error) {
 
-	dbArticles, err := r.queries.FetchArticlesByID(ctx, hashIDs)
+	dbArticles, err := r.queries.FetchArticlesByID(ctx, queries.FetchArticlesByIDParams{
+		HashIds: hashIDs,
+		UserID:  domain.UserIDFromContext(ctx),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("fetching articles by ID: %w", err)
 	}

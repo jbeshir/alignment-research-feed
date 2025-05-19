@@ -21,6 +21,9 @@ SELECT
     authors,
     date_published
 FROM articles
+LEFT JOIN article_ratings
+    ON articles.hash_id = article_ratings.article_hash_id
+        AND article_ratings.user_id = ?
 WHERE hash_id IN (sqlc.slice('hash_ids'));
 
 -- name: SetArticleRead :exec

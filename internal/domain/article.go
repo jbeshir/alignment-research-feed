@@ -12,6 +12,10 @@ type Article struct {
 	Authors     string    `json:"authors"`
 	Source      string    `json:"source"`
 	PublishedAt time.Time `json:"published_at"`
+
+	HaveRead   *bool `json:"have_read,omitempty"`
+	ThumbsUp   *bool `json:"thumbs_up,omitempty"`
+	ThumbsDown *bool `json:"thumbs_down,omitempty"`
 }
 
 type ArticleListMetadata struct {
