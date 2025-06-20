@@ -10,7 +10,10 @@ import (
 )
 
 type ArticlesList struct {
-	Lister      datasources.LatestArticleLister
+	Lister interface {
+		datasources.LatestArticleLister
+		datasources.ArticleFetcher
+	}
 	CacheMaxAge time.Duration
 }
 
@@ -42,11 +45,21 @@ func (c ArticlesList) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	articles, err := c.Lister.ListLatestArticles(r.Context(), filters, options)
+	articleIDs, err := c.Lister.ListLatestArticleIDs(r.Context(), filters, options)
 	if err != nil {
 		ctx := r.Context()
 		logger := domain.LoggerFromContext(ctx)
-		logger.ErrorContext(ctx, "unable to fetch articles", "error", err)
+		logger.ErrorContext(ctx, "unable to fetch article IDs", "error", err)
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	articles, err := c.Lister.FetchArticlesByID(r.Context(), articleIDs)
+	if err != nil {
+		ctx := r.Context()
+		logger := domain.LoggerFromContext(ctx)
+		logger.ErrorContext(ctx, "unable to fetch article metadata", "error", err)
 
 		w.WriteHeader(http.StatusInternalServerError)
 		return

@@ -19,7 +19,10 @@ SELECT
     source,
     LEFT(COALESCE(text, ''), 500) as text_start,
     authors,
-    date_published
+    date_published,
+    have_read,
+    thumbs_up,
+    thumbs_down
 FROM articles
 LEFT JOIN article_ratings
     ON articles.hash_id = article_ratings.article_hash_id

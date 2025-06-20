@@ -51,11 +51,21 @@ func (c RSS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	articles, err := c.Dataset.ListLatestArticles(r.Context(), filters, options)
+	articleIDs, err := c.Dataset.ListLatestArticleIDs(r.Context(), filters, options)
 	if err != nil {
 		ctx := r.Context()
 		logger := domain.LoggerFromContext(ctx)
-		logger.ErrorContext(ctx, "unable to fetch articles for feed", "error", err)
+		logger.ErrorContext(ctx, "unable to fetch article IDs for feed", "error", err)
+
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	articles, err := c.Dataset.FetchArticlesByID(r.Context(), articleIDs)
+	if err != nil {
+		ctx := r.Context()
+		logger := domain.LoggerFromContext(ctx)
+		logger.ErrorContext(ctx, "unable to fetch article metadata for feed", "error", err)
 
 		w.WriteHeader(http.StatusInternalServerError)
 		return

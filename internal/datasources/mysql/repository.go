@@ -32,21 +32,13 @@ func New(db *sql.DB) *Repository {
 	return &Repository{db: db, queries: queries.New(db)}
 }
 
-func (r *Repository) ListLatestArticles(
+func (r *Repository) ListLatestArticleIDs(
 	ctx context.Context,
 	filters domain.ArticleFilters,
 	options domain.ArticleListOptions,
-) ([]domain.Article, error) {
-	userID := domain.UserIDFromContext(ctx)
-
-	sb := sqlbuilder.Select(
-		"hash_id", "title", "url", "source",
-		"LEFT(COALESCE(text, ''), 500) as text_start",
-		"authors", "date_published", "have_read", "thumbs_up", "thumbs_down")
+) ([]string, error) {
+	sb := sqlbuilder.Select("hash_id")
 	sb.From("articles")
-	sb.JoinWithOption(sqlbuilder.LeftJoin, "article_ratings",
-		"articles.hash_id = article_ratings.article_hash_id",
-		"article_ratings.user_id = "+sb.Args.Add(userID))
 
 	conds := buildArticlesConditions(sb, filters)
 	if len(conds) > 0 {
@@ -69,48 +61,15 @@ func (r *Repository) ListLatestArticles(
 	}
 	defer rows.Close()
 
-	articles := []domain.Article{}
+	articleIDs := []string{}
 	for rows.Next() {
-		var i domain.Article
-		var title sql.NullString
-		var url sql.NullString
-		var source sql.NullString
-		var datePublished sql.NullTime
-		var haveRead sql.NullBool
-		var thumbsUp sql.NullBool
-		var thumbsDown sql.NullBool
-
+		var id string
 		if err := rows.Scan(
-			&i.HashID,
-			&title,
-			&url,
-			&source,
-			&i.TextStart,
-			&i.Authors,
-			&datePublished,
-			&haveRead,
-			&thumbsUp,
-			&thumbsDown,
+			&id,
 		); err != nil {
 			return nil, fmt.Errorf("scanning articles: %w", err)
 		}
-
-		// Just send nulls through as zero values
-		i.Title = title.String
-		i.Link = url.String
-		i.Source = source.String
-		i.PublishedAt = datePublished.Time
-		if haveRead.Valid {
-			i.HaveRead = &haveRead.Bool
-		}
-		if thumbsUp.Valid {
-			i.ThumbsUp = &thumbsUp.Bool
-		}
-		if thumbsDown.Valid {
-			i.ThumbsDown = &thumbsDown.Bool
-		}
-
-		articles = append(articles, i)
+		articleIDs = append(articleIDs, id)
 	}
 	if err := rows.Close(); err != nil {
 		return nil, fmt.Errorf("closing rows iterator: %w", err)
@@ -119,7 +78,7 @@ func (r *Repository) ListLatestArticles(
 		return nil, fmt.Errorf("iterating rows: %w", err)
 	}
 
-	return articles, nil
+	return articleIDs, nil
 }
 
 func (r *Repository) FetchArticlesByID(

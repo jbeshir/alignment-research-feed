@@ -28,9 +28,9 @@ type ArticleReadSetter interface {
 }
 
 type LatestArticleLister interface {
-	ListLatestArticles(
+	ListLatestArticleIDs(
 		ctx context.Context,
 		filters domain.ArticleFilters,
 		options domain.ArticleListOptions,
-	) ([]domain.Article, error)
+	) ([]string, error)
 }
