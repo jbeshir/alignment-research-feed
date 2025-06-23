@@ -5,15 +5,43 @@ run:
 
 linters:
   enable:
-    - govet
-    - errcheck
-    - staticcheck
-    - unused
-    - misspell
-    - ineffassign
-    - gocyclo
+    - asasalint
     - dupl
+    - errcheck
+    - errchkjson
+    - errorlint
+    - exhaustive
+    - exhaustruct
+    - fatcontext
     - goconst
-    - nakedret
+    - gocritic
+    - gocyclo
+    - godot
+    - gosec
+    - govet
+    - iface
+    - lll
+    - loggercheck
+    - makezero
+    - misspell
+    - musttag
+    - nolintlint
+    - promlinter
+    - reassign
+    - recvcheck
+    - rowserrcheck
+    - sloglint
+    - spancheck
+    - staticcheck
+    - testifylint
     - unparam
-    - gocritic 
+    - unused
+    - usestdlibvars
+  exclusions:
+    rules:
+      - linters:
+        - lll
+        path: ".*_test\\.go$"
+  settings:
+    gocyclo:
+      min-complexity: 12
