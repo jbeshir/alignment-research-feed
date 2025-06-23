@@ -48,3 +48,7 @@ setup-files: .env
 
 .env:
 	cp .env.dist .env
+
+.PHONY: lint
+lint:
+	golangci-lint run ./...
