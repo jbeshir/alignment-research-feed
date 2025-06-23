@@ -5,6 +5,7 @@ DOCKER_COMMAND=docker compose --env-file .env -p ${SERVICE_NAME} -f docker/dev/d
 setup-tools: setup-files
 	go install github.com/joho/godotenv/cmd/godotenv@latest
 	go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+	go install golang.org/x/tools/cmd/goimports@latest
 
 .PHONY generate:
 generate:
@@ -52,3 +53,8 @@ setup-files: .env
 .PHONY: lint
 lint:
 	golangci-lint run ./...
+
+.PHONY: fmt
+fmt:
+	go fmt ./...
+	goimports -w .
