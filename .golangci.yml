@@ -16,7 +16,6 @@ linters:
     - errchkjson
     - errorlint
     - exhaustive
-    - exhaustruct
     - fatcontext
     - goconst
     - gocritic

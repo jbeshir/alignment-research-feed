@@ -2,14 +2,15 @@ package router
 
 import (
 	"fmt"
-	jwtmiddleware "github.com/auth0/go-jwt-middleware/v2"
-	"github.com/auth0/go-jwt-middleware/v2/jwks"
-	"github.com/auth0/go-jwt-middleware/v2/validator"
-	"github.com/jbeshir/alignment-research-feed/internal/domain"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	jwtmiddleware "github.com/auth0/go-jwt-middleware/v2"
+	"github.com/auth0/go-jwt-middleware/v2/jwks"
+	"github.com/auth0/go-jwt-middleware/v2/validator"
+	"github.com/jbeshir/alignment-research-feed/internal/domain"
 )
 
 const auth0AuthHeaderPrefix = "Bearer auth0|"
@@ -37,7 +38,9 @@ func SetupAuth0Middleware(auth0Domain, auth0Audience string) (func(http.Handler)
 		logger.WarnContext(r.Context(), "encountered error while validating JWT", "error", err)
 		w.WriteHeader(http.StatusUnauthorized)
 		w.Header().Set("Content-Type", "application/json")
-		w.Write([]byte(`{"message":"Failed to validate JWT."}`))
+		if _, writeErr := w.Write([]byte(`{"message":"Failed to validate JWT."}`)); writeErr != nil {
+			logger.ErrorContext(r.Context(), "failed to write error response", "error", writeErr)
+		}
 	}
 
 	middleware := jwtmiddleware.New(

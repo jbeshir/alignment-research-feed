@@ -2,12 +2,9 @@ package datasources
 
 import (
 	"context"
+
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
 )
-
-type SimilarityRepository interface {
-	SimilarArticleLister
-}
 
 type SimilarArticleLister interface {
 	ListSimilarArticles(
@@ -17,9 +14,9 @@ type SimilarArticleLister interface {
 	) ([]domain.SimilarArticle, error)
 }
 
-type NullSimilarityRepository struct{}
+type NullSimilarArticleLister struct{}
 
-func (NullSimilarityRepository) ListSimilarArticles(
+func (NullSimilarArticleLister) ListSimilarArticles(
 	ctx context.Context,
 	id string,
 	count int,

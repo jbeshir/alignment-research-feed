@@ -1,16 +1,17 @@
 package router
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/gorilla/mux"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources"
 	"github.com/jbeshir/alignment-research-feed/internal/transport/web/controller"
-	"net/http"
-	"time"
 )
 
 func MakeRouter(
 	dataset datasources.DatasetRepository,
-	similiarity datasources.SimilarityRepository,
+	similarity datasources.SimilarArticleLister,
 	rssFeedBaseURL, rssFeedAuthorName, rssFeedAuthorEmail string,
 	latestCacheMaxAge time.Duration,
 	authMiddleware func(http.Handler) http.Handler,
@@ -31,7 +32,7 @@ func MakeRouter(
 
 	r.Handle("/v1/articles/{article_id}/similar", controller.SimilarArticlesList{
 		Fetcher:     dataset,
-		Similarity:  similiarity,
+		Similarity:  similarity,
 		CacheMaxAge: 0,
 	}).Methods(http.MethodGet, http.MethodOptions)
 

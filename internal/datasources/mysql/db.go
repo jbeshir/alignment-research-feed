@@ -4,9 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-)
 
-import _ "github.com/go-sql-driver/mysql"
+	_ "github.com/go-sql-driver/mysql"
+)
 
 const driverParamStr string = "?parseTime=true"
 

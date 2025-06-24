@@ -3,11 +3,12 @@ package app
 import (
 	"context"
 	"fmt"
-	"github.com/jbeshir/alignment-research-feed/internal/domain"
 	"os"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/jbeshir/alignment-research-feed/internal/domain"
 )
 
 func MustGetEnvAsString(ctx context.Context, name string) string {
