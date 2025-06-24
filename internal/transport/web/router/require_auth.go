@@ -1,8 +1,9 @@
 package router
 
 import (
-	"github.com/jbeshir/alignment-research-feed/internal/domain"
 	"net/http"
+
+	"github.com/jbeshir/alignment-research-feed/internal/domain"
 )
 
 func requireAuthMiddleware(next http.Handler) http.Handler {

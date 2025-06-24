@@ -2,15 +2,16 @@ package controller
 
 import (
 	"fmt"
-	"github.com/gorilla/feeds"
-	"github.com/jbeshir/alignment-research-feed/internal/datasources"
-	"github.com/jbeshir/alignment-research-feed/internal/domain"
 	"net/http"
 	"net/url"
 	"slices"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/gorilla/feeds"
+	"github.com/jbeshir/alignment-research-feed/internal/datasources"
+	"github.com/jbeshir/alignment-research-feed/internal/domain"
 )
 
 type RSS struct {

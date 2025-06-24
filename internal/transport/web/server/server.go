@@ -3,8 +3,10 @@ package server
 import (
 	"context"
 	"fmt"
-	"golang.org/x/crypto/acme/autocert"
 	"net/http"
+	"time"
+
+	"golang.org/x/crypto/acme/autocert"
 )
 
 type Server struct {
@@ -15,9 +17,17 @@ type Server struct {
 }
 
 func (s *Server) Run(ctx context.Context) error {
+	server := &http.Server{
+		Handler:      s.Router,
+		ReadTimeout:  15 * time.Second,
+		WriteTimeout: 15 * time.Second,
+		IdleTimeout:  60 * time.Second,
+	}
+
 	if s.TLSDisabled {
-		return http.ListenAndServe(fmt.Sprintf(":%d", s.TLSDisabledPort), s.Router)
+		server.Addr = fmt.Sprintf(":%d", s.TLSDisabledPort)
+		return server.ListenAndServe()
 	} else {
-		return http.Serve(autocert.NewListener(s.AutocertHostnames...), s.Router)
+		return server.Serve(autocert.NewListener(s.AutocertHostnames...))
 	}
 }

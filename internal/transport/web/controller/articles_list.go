@@ -3,10 +3,11 @@ package controller
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/jbeshir/alignment-research-feed/internal/datasources"
-	"github.com/jbeshir/alignment-research-feed/internal/domain"
 	"net/http"
 	"time"
+
+	"github.com/jbeshir/alignment-research-feed/internal/datasources"
+	"github.com/jbeshir/alignment-research-feed/internal/domain"
 )
 
 type ArticlesList struct {

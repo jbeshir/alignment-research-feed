@@ -3,14 +3,15 @@ package pinecone
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/jbeshir/alignment-research-feed/internal/datasources"
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
 	"github.com/pinecone-io/go-pinecone/pinecone"
 	"google.golang.org/protobuf/types/known/structpb"
-	"strings"
 )
 
-var _ datasources.SimilarityRepository = (*Client)(nil)
+var _ datasources.SimilarArticleLister = (*Client)(nil)
 
 type Client struct {
 	pinecone *pinecone.Client
@@ -22,7 +23,11 @@ func NewClient(
 	apiKey string,
 ) (*Client, error) {
 	pc, err := pinecone.NewClient(pinecone.NewClientParams{
-		ApiKey: apiKey,
+		ApiKey:     apiKey,
+		Headers:    nil,
+		Host:       "",
+		RestClient: nil,
+		SourceTag:  "",
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating pinecone client: %w", err)
@@ -51,7 +56,12 @@ func (c *Client) ListSimilarArticles(ctx context.Context, hashID string, limit i
 	if err != nil {
 		return nil, fmt.Errorf("creating pinecone index connection: %w", err)
 	}
-	defer idxConn.Close()
+	defer func() {
+		if closeErr := idxConn.Close(); closeErr != nil {
+			// Log the error but don't override the main error
+			_ = closeErr // Explicitly ignore the error
+		}
+	}()
 
 	baseVectorPrefix := hashID + "_"
 	baseVectorLimit := uint32(20)

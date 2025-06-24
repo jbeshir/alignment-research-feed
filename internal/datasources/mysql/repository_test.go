@@ -3,13 +3,14 @@ package mysql
 import (
 	"context"
 	"database/sql"
+	"os"
+	"testing"
+	"time"
+
 	"github.com/jbeshir/alignment-research-feed/internal/datasources/mysql/queries"
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"os"
-	"testing"
-	"time"
 )
 
 func setupTestDB(t *testing.T) *sql.DB {
@@ -52,6 +53,14 @@ func setupTestDB(t *testing.T) *sql.DB {
 	})
 	require.NoError(t, err)
 
+	// Set up some test ratings
+	err = q.SetArticleRead(context.Background(), queries.SetArticleReadParams{
+		ArticleHashID: "6a429bf5788aa30893172643f892fb74",
+		UserID:        "test-user-123",
+		HaveRead:      sql.NullBool{Bool: true, Valid: true},
+	})
+	require.NoError(t, err)
+
 	return db
 }
 
@@ -60,11 +69,14 @@ func teardownTestDB(t *testing.T, db *sql.DB) {
 		t.Skip("skipping MySQL integration tests in short mode")
 	}
 
-	_, err := db.ExecContext(context.Background(), "DELETE FROM articles")
-	assert.NoError(t, err)
+	_, err := db.ExecContext(context.Background(), "DELETE FROM article_ratings")
+	require.NoError(t, err)
+
+	_, err = db.ExecContext(context.Background(), "DELETE FROM articles")
+	require.NoError(t, err)
 
 	err = db.Close()
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestRepository_ListLatestArticleIDs(t *testing.T) {
@@ -117,7 +129,7 @@ func TestRepository_ListLatestArticleIDs(t *testing.T) {
 				PageSize: 100,
 				Page:     1,
 			})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			assert.Equal(t, c.expected, results)
 		})
 	}
@@ -128,11 +140,13 @@ func TestRepository_FetchArticlesByID(t *testing.T) {
 	cases := []struct {
 		name     string
 		ids      []string
+		userID   string
 		expected []domain.Article
 	}{
 		{
-			name: "two_results",
-			ids:  []string{"59c45352ef0608a50c51afe9afbc23c3", "6a429bf5788aa30893172643f892fb74"},
+			name:   "two_results_no_ratings",
+			ids:    []string{"59c45352ef0608a50c51afe9afbc23c3", "6a429bf5788aa30893172643f892fb74"},
+			userID: "",
 			expected: []domain.Article{
 				{
 					HashID:      "59c45352ef0608a50c51afe9afbc23c3",
@@ -155,8 +169,9 @@ func TestRepository_FetchArticlesByID(t *testing.T) {
 			},
 		},
 		{
-			name: "one_result",
-			ids:  []string{"6a429bf5788aa30893172643f892fb74", "does-not-exist"},
+			name:   "one_result_no_ratings",
+			ids:    []string{"6a429bf5788aa30893172643f892fb74", "does-not-exist"},
+			userID: "",
 			expected: []domain.Article{
 				{
 					HashID:      "6a429bf5788aa30893172643f892fb74",
@@ -172,7 +187,27 @@ func TestRepository_FetchArticlesByID(t *testing.T) {
 		{
 			name:     "no_results",
 			ids:      []string{"does-not-exist"},
+			userID:   "",
 			expected: []domain.Article{},
+		},
+		{
+			name:   "with_ratings",
+			ids:    []string{"6a429bf5788aa30893172643f892fb74"},
+			userID: "test-user-123",
+			expected: []domain.Article{
+				{
+					HashID:      "6a429bf5788aa30893172643f892fb74",
+					Title:       "Refusal in LLMs is mediated by a single direction",
+					Link:        "https://www.alignmentforum.org/posts/jGuXSZgv6qfdhMCuJ/refusal-in-llms-is-mediated-by-a-single-direction",
+					Source:      "alignmentforum",
+					TextStart:   "Post text 1",
+					Authors:     "Andy Arditi,Oscar Obeso,Aaquib111,wesg,Neel Nanda",
+					PublishedAt: time.Date(2024, 4, 27, 11, 13, 6, 0, time.UTC),
+					HaveRead:    func() *bool { b := true; return &b }(),
+					ThumbsUp:    func() *bool { b := false; return &b }(),
+					ThumbsDown:  func() *bool { b := false; return &b }(),
+				},
+			},
 		},
 	}
 
@@ -183,8 +218,13 @@ func TestRepository_FetchArticlesByID(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			sut := New(db)
 
-			results, err := sut.FetchArticlesByID(context.Background(), c.ids)
-			assert.NoError(t, err)
+			ctx := t.Context()
+			if c.userID != "" {
+				ctx = domain.ContextWithUserID(ctx, c.userID)
+			}
+
+			results, err := sut.FetchArticlesByID(ctx, c.ids)
+			require.NoError(t, err)
 			assert.Equal(t, c.expected, results)
 		})
 	}

@@ -2,6 +2,7 @@ package datasources
 
 import (
 	"context"
+
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
 )
 

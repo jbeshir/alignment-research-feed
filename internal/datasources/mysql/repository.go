@@ -4,11 +4,12 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
+
 	"github.com/huandu/go-sqlbuilder"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources/mysql/queries"
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
-	"time"
 )
 
 //go:generate sqlc generate
@@ -59,7 +60,12 @@ func (r *Repository) ListLatestArticleIDs(
 	if err != nil {
 		return nil, fmt.Errorf("running articles query: %w", err)
 	}
-	defer rows.Close()
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			// Log the error but don't override the main error
+			_ = closeErr // Explicitly ignore the error
+		}
+	}()
 
 	articleIDs := []string{}
 	for rows.Next() {
@@ -96,6 +102,18 @@ func (r *Repository) FetchArticlesByID(
 
 	articles := make([]domain.Article, 0, len(dbArticles))
 	for _, dbArticle := range dbArticles {
+		var haveRead, thumbsUp, thumbsDown *bool
+
+		if dbArticle.HaveRead.Valid {
+			haveRead = &dbArticle.HaveRead.Bool
+		}
+		if dbArticle.ThumbsUp.Valid {
+			thumbsUp = &dbArticle.ThumbsUp.Bool
+		}
+		if dbArticle.ThumbsDown.Valid {
+			thumbsDown = &dbArticle.ThumbsDown.Bool
+		}
+
 		articles = append(articles, domain.Article{
 			HashID:      dbArticle.HashID,
 			Title:       dbArticle.Title.String,
@@ -104,6 +122,9 @@ func (r *Repository) FetchArticlesByID(
 			Authors:     dbArticle.Authors,
 			Source:      dbArticle.Source.String,
 			PublishedAt: dbArticle.DatePublished.Time,
+			HaveRead:    haveRead,
+			ThumbsUp:    thumbsUp,
+			ThumbsDown:  thumbsDown,
 		})
 	}
 

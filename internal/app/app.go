@@ -3,12 +3,13 @@ package app
 import (
 	"context"
 	"fmt"
+	"net/http"
+
 	"github.com/jbeshir/alignment-research-feed/internal/datasources"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources/mysql"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources/pinecone"
 	"github.com/jbeshir/alignment-research-feed/internal/transport/web/router"
 	"github.com/jbeshir/alignment-research-feed/internal/transport/web/server"
-	"net/http"
 )
 
 type Component interface {
@@ -63,10 +64,10 @@ func setupDatasetRepository(ctx context.Context) (datasources.DatasetRepository,
 	return mysql.New(db), nil
 }
 
-func setupSimilarityRepository(ctx context.Context) (datasources.SimilarityRepository, error) {
+func setupSimilarityRepository(ctx context.Context) (datasources.SimilarArticleLister, error) {
 	switch driver := MustGetEnvAsString(ctx, "SIMILARITY_DRIVER"); driver {
 	case "null":
-		return datasources.NullSimilarityRepository{}, nil
+		return datasources.NullSimilarArticleLister{}, nil
 	case "pinecone":
 		similarity, err := pinecone.NewClient(ctx, MustGetEnvAsString(ctx, "PINECONE_API_KEY"))
 		if err != nil {

@@ -3,14 +3,15 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"os"
+
 	"github.com/jbeshir/alignment-research-feed/internal/app"
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
 	"golang.org/x/sync/errgroup"
-	"log/slog"
-	"os"
-)
 
-import _ "github.com/joho/godotenv/autoload"
+	_ "github.com/joho/godotenv/autoload"
+)
 
 func main() {
 	ctx := context.Background()
