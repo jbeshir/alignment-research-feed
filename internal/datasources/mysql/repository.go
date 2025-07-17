@@ -100,7 +100,8 @@ func (r *Repository) FetchArticlesByID(
 		return nil, fmt.Errorf("fetching articles by ID: %w", err)
 	}
 
-	articles := make([]domain.Article, 0, len(dbArticles))
+	// Create a map for quick lookup of articles by hash_id
+	articleMap := make(map[string]domain.Article, len(dbArticles))
 	for _, dbArticle := range dbArticles {
 		var haveRead, thumbsUp, thumbsDown *bool
 
@@ -114,7 +115,7 @@ func (r *Repository) FetchArticlesByID(
 			thumbsDown = &dbArticle.ThumbsDown.Bool
 		}
 
-		articles = append(articles, domain.Article{
+		articleMap[dbArticle.HashID] = domain.Article{
 			HashID:      dbArticle.HashID,
 			Title:       dbArticle.Title.String,
 			Link:        dbArticle.Url.String,
@@ -125,7 +126,15 @@ func (r *Repository) FetchArticlesByID(
 			HaveRead:    haveRead,
 			ThumbsUp:    thumbsUp,
 			ThumbsDown:  thumbsDown,
-		})
+		}
+	}
+
+	// Build results in the same order as the input hashIDs
+	articles := make([]domain.Article, 0, len(hashIDs))
+	for _, hashID := range hashIDs {
+		if article, exists := articleMap[hashID]; exists {
+			articles = append(articles, article)
+		}
 	}
 
 	return articles, nil
