@@ -31,7 +31,9 @@ func (c ArticleGet) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", int(c.CacheMaxAge.Seconds())))
+	if domain.UserIDFromContext(r.Context()) == "" {
+		w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", int(c.CacheMaxAge.Seconds())))
+	}
 
 	if err := json.NewEncoder(w).Encode(articles[0]); err != nil {
 		ctx := r.Context()
