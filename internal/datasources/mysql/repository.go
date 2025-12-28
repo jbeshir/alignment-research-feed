@@ -29,6 +29,22 @@ func (r *Repository) SetArticleRead(ctx context.Context, hashID, userID string, 
 	})
 }
 
+func (r *Repository) SetArticleThumbsUp(ctx context.Context, hashID, userID string, thumbsUp bool) error {
+	return r.queries.SetArticleThumbsUp(ctx, queries.SetArticleThumbsUpParams{
+		ArticleHashID: hashID,
+		UserID:        userID,
+		ThumbsUp:      sql.NullBool{Bool: thumbsUp, Valid: true},
+	})
+}
+
+func (r *Repository) SetArticleThumbsDown(ctx context.Context, hashID, userID string, thumbsDown bool) error {
+	return r.queries.SetArticleThumbsDown(ctx, queries.SetArticleThumbsDownParams{
+		ArticleHashID: hashID,
+		UserID:        userID,
+		ThumbsDown:    sql.NullBool{Bool: thumbsDown, Valid: true},
+	})
+}
+
 func New(db *sql.DB) *Repository {
 	return &Repository{db: db, queries: queries.New(db)}
 }
