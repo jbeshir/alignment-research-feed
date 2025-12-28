@@ -10,6 +10,8 @@ type DatasetRepository interface {
 	LatestArticleLister
 	ArticleFetcher
 	ArticleReadSetter
+	ArticleThumbsUpSetter
+	ArticleThumbsDownSetter
 }
 
 type ArticleFetcher interface {
@@ -25,6 +27,24 @@ type ArticleReadSetter interface {
 		hashID string,
 		userID string,
 		read bool,
+	) error
+}
+
+type ArticleThumbsUpSetter interface {
+	SetArticleThumbsUp(
+		ctx context.Context,
+		hashID string,
+		userID string,
+		thumbsUp bool,
+	) error
+}
+
+type ArticleThumbsDownSetter interface {
+	SetArticleThumbsDown(
+		ctx context.Context,
+		hashID string,
+		userID string,
+		thumbsDown bool,
 	) error
 }
 

@@ -41,6 +41,16 @@ func MakeRouter(
 		ReadSetter: dataset,
 	})).Methods(http.MethodPost, http.MethodOptions)
 
+	r.Handle("/v1/articles/{article_id}/thumbs_up/{thumbs_up}", requireAuthMiddleware(controller.ArticleThumbsUpSet{
+		Fetcher:        dataset,
+		ThumbsUpSetter: dataset,
+	})).Methods(http.MethodPost, http.MethodOptions)
+
+	r.Handle("/v1/articles/{article_id}/thumbs_down/{thumbs_down}", requireAuthMiddleware(controller.ArticleThumbsDownSet{
+		Fetcher:          dataset,
+		ThumbsDownSetter: dataset,
+	})).Methods(http.MethodPost, http.MethodOptions)
+
 	rssFeeds := []controller.RSS{
 		{
 			FeedHostname:    rssFeedBaseURL,

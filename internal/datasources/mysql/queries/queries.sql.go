@@ -163,3 +163,63 @@ func (q *Queries) SetArticleRead(ctx context.Context, arg SetArticleReadParams) 
 	)
 	return err
 }
+
+const setArticleThumbsUp = `-- name: SetArticleThumbsUp :exec
+INSERT INTO article_ratings (
+        article_hash_id,
+        user_id,
+        have_read,
+        thumbs_up,
+        thumbs_down
+    ) VALUES (?, ?, FALSE, ?, FALSE)
+ON DUPLICATE KEY UPDATE
+    thumbs_up = ?,
+    thumbs_down = IF(?, FALSE, thumbs_down)
+`
+
+type SetArticleThumbsUpParams struct {
+	ArticleHashID string
+	UserID        string
+	ThumbsUp      sql.NullBool
+}
+
+func (q *Queries) SetArticleThumbsUp(ctx context.Context, arg SetArticleThumbsUpParams) error {
+	_, err := q.db.ExecContext(ctx, setArticleThumbsUp,
+		arg.ArticleHashID,
+		arg.UserID,
+		arg.ThumbsUp,
+		arg.ThumbsUp,
+		arg.ThumbsUp,
+	)
+	return err
+}
+
+const setArticleThumbsDown = `-- name: SetArticleThumbsDown :exec
+INSERT INTO article_ratings (
+        article_hash_id,
+        user_id,
+        have_read,
+        thumbs_up,
+        thumbs_down
+    ) VALUES (?, ?, FALSE, FALSE, ?)
+ON DUPLICATE KEY UPDATE
+    thumbs_down = ?,
+    thumbs_up = IF(?, FALSE, thumbs_up)
+`
+
+type SetArticleThumbsDownParams struct {
+	ArticleHashID string
+	UserID        string
+	ThumbsDown    sql.NullBool
+}
+
+func (q *Queries) SetArticleThumbsDown(ctx context.Context, arg SetArticleThumbsDownParams) error {
+	_, err := q.db.ExecContext(ctx, setArticleThumbsDown,
+		arg.ArticleHashID,
+		arg.UserID,
+		arg.ThumbsDown,
+		arg.ThumbsDown,
+		arg.ThumbsDown,
+	)
+	return err
+}
