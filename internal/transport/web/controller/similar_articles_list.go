@@ -31,7 +31,7 @@ func (c SimilarArticlesList) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	similarArticles, err := c.Similarity.ListSimilarArticles(ctx, articleID, 10)
+	similarArticles, err := c.Similarity.ListSimilarArticles(ctx, []string{articleID}, 10)
 	if err != nil {
 		logger.ErrorContext(ctx, "unable to fetch similar articles", "error", err)
 

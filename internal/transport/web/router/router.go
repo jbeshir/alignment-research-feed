@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
+	"github.com/jbeshir/alignment-research-feed/internal/command"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources"
 	"github.com/jbeshir/alignment-research-feed/internal/transport/web/controller"
 )
@@ -24,6 +25,14 @@ func MakeRouter(
 		Lister:      dataset,
 		CacheMaxAge: latestCacheMaxAge,
 	}).Methods(http.MethodGet, http.MethodOptions)
+
+	r.Handle("/v1/articles/recommended", requireAuthMiddleware(controller.RecommendedArticlesList{
+		Command: &command.RecommendArticles{
+			ThumbsUpLister:   dataset,
+			SimilarityLister: similarity,
+			ArticleFetcher:   dataset,
+		},
+	})).Methods(http.MethodGet, http.MethodOptions)
 
 	r.Handle("/v1/articles/{article_id}", controller.ArticleGet{
 		Fetcher:     dataset,

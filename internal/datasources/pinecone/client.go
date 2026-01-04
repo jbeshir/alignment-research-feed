@@ -44,9 +44,16 @@ func NewClient(
 	}, nil
 }
 
-func (c *Client) ListSimilarArticles(ctx context.Context, hashID string, limit int) ([]domain.SimilarArticle, error) {
+func (c *Client) ListSimilarArticles(
+	ctx context.Context,
+	hashIDs []string,
+	limit int,
+) ([]domain.SimilarArticle, error) {
 	if limit > 10000 {
 		return nil, fmt.Errorf("limit value too high [%d]", limit)
+	}
+	if len(hashIDs) == 0 {
+		return nil, nil
 	}
 
 	idxConn, err := c.pinecone.Index(pinecone.NewIndexConnParams{
@@ -58,17 +65,28 @@ func (c *Client) ListSimilarArticles(ctx context.Context, hashID string, limit i
 	}
 	defer func() {
 		if closeErr := idxConn.Close(); closeErr != nil {
-			// Log the error but don't override the main error
-			_ = closeErr // Explicitly ignore the error
+			_ = closeErr
 		}
 	}()
 
-	searchVector, err := c.getBaseSearchVector(ctx, idxConn, hashID)
-	if err != nil {
-		return nil, err
+	// Fetch vectors for each hash ID and average them
+	var allVectors [][]float32
+	for _, hashID := range hashIDs {
+		vector, err := c.getBaseSearchVector(ctx, idxConn, hashID)
+		if err != nil {
+			// Skip articles that don't have vectors
+			continue
+		}
+		allVectors = append(allVectors, vector)
 	}
 
-	return c.findSimilarArticles(ctx, idxConn, hashID, searchVector, limit)
+	if len(allVectors) == 0 {
+		return nil, nil
+	}
+
+	searchVector := averageVectors(allVectors)
+
+	return c.findSimilarArticles(ctx, idxConn, hashIDs, searchVector, limit)
 }
 
 func (c *Client) getBaseSearchVector(
@@ -100,20 +118,20 @@ func (c *Client) getBaseSearchVector(
 		return nil, fmt.Errorf("fetching vectors for base article [%s]: %w", hashID, err)
 	}
 
-	return averageVectorValues(baseVectorsResp.Vectors), nil
+	return averagePineconeVectors(baseVectorsResp.Vectors), nil
 }
 
 func (c *Client) findSimilarArticles(
 	ctx context.Context,
 	idxConn *pinecone.IndexConnection,
-	hashID string,
+	excludeHashIDs []string,
 	searchVector []float32,
 	limit int,
 ) ([]domain.SimilarArticle, error) {
 	var results []domain.SimilarArticle
 
 	for len(results) < limit {
-		foundResult, err := c.searchBatch(ctx, idxConn, hashID, searchVector, &results, limit)
+		foundResult, err := c.searchBatch(ctx, idxConn, excludeHashIDs, searchVector, &results, limit)
 		if err != nil {
 			return nil, err
 		}
@@ -128,12 +146,12 @@ func (c *Client) findSimilarArticles(
 func (c *Client) searchBatch(
 	ctx context.Context,
 	idxConn *pinecone.IndexConnection,
-	hashID string,
+	excludeHashIDs []string,
 	searchVector []float32,
 	results *[]domain.SimilarArticle,
 	limit int,
 ) (bool, error) {
-	filter, err := c.createExistingResultsExclusionFilter(hashID, *results)
+	filter, err := c.createExistingResultsExclusionFilter(excludeHashIDs, *results)
 	if err != nil {
 		return false, err
 	}
@@ -154,10 +172,13 @@ func (c *Client) searchBatch(
 }
 
 func (c *Client) createExistingResultsExclusionFilter(
-	hashID string,
+	excludeHashIDs []string,
 	results []domain.SimilarArticle,
 ) (*pinecone.MetadataFilter, error) {
-	filterExistingIDs := []any{hashID}
+	var filterExistingIDs []any
+	for _, id := range excludeHashIDs {
+		filterExistingIDs = append(filterExistingIDs, id)
+	}
 	for _, result := range results {
 		filterExistingIDs = append(filterExistingIDs, result.HashID)
 	}
@@ -221,22 +242,29 @@ func (c *Client) isDuplicate(hashID string, results []domain.SimilarArticle) boo
 	return false
 }
 
-func averageVectorValues(vectors map[string]*pinecone.Vector) []float32 {
-	var values []float32
+func averagePineconeVectors(vectors map[string]*pinecone.Vector) []float32 {
+	var values [][]float32
 	for _, vector := range vectors {
-		if values == nil {
-			values = append(values, vector.Values...)
-			continue
-		}
+		values = append(values, vector.Values)
+	}
+	return averageVectors(values)
+}
 
-		for i, v := range values {
-			values[i] += v
+func averageVectors(vectors [][]float32) []float32 {
+	if len(vectors) == 0 {
+		return nil
+	}
+
+	result := make([]float32, len(vectors[0]))
+	for _, vector := range vectors {
+		for i, v := range vector {
+			result[i] += v
 		}
 	}
 
-	for i := range values {
-		values[i] /= float32(len(vectors))
+	for i := range result {
+		result[i] /= float32(len(vectors))
 	}
 
-	return values
+	return result
 }

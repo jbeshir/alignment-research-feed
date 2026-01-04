@@ -29,6 +29,10 @@ LEFT JOIN article_ratings
         AND article_ratings.user_id = ?
 WHERE hash_id IN (sqlc.slice('hash_ids'));
 
+-- name: ListThumbsUpArticleIDs :many
+SELECT article_hash_id FROM article_ratings
+WHERE user_id = ? AND thumbs_up = TRUE;
+
 -- name: SetArticleRead :exec
 INSERT INTO article_ratings (
         article_hash_id,

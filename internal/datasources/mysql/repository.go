@@ -45,6 +45,10 @@ func (r *Repository) SetArticleThumbsDown(ctx context.Context, hashID, userID st
 	})
 }
 
+func (r *Repository) ListThumbsUpArticleIDs(ctx context.Context, userID string) ([]string, error) {
+	return r.queries.ListThumbsUpArticleIDs(ctx, userID)
+}
+
 func New(db *sql.DB) *Repository {
 	return &Repository{db: db, queries: queries.New(db)}
 }
