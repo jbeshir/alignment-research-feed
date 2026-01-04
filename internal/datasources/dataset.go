@@ -8,6 +8,7 @@ import (
 
 type DatasetRepository interface {
 	LatestArticleLister
+	ThumbsUpArticleLister
 	ArticleFetcher
 	ArticleReadSetter
 	ArticleThumbsUpSetter
@@ -54,4 +55,8 @@ type LatestArticleLister interface {
 		filters domain.ArticleFilters,
 		options domain.ArticleListOptions,
 	) ([]string, error)
+}
+
+type ThumbsUpArticleLister interface {
+	ListThumbsUpArticleIDs(ctx context.Context, userID string) ([]string, error)
 }

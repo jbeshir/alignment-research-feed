@@ -9,16 +9,19 @@ import (
 type SimilarArticleLister interface {
 	ListSimilarArticles(
 		ctx context.Context,
-		id string,
+		hashIDs []string,
 		count int,
 	) ([]domain.SimilarArticle, error)
 }
+
+// SimilarityRepository is an alias for SimilarArticleLister for semantic clarity.
+type SimilarityRepository = SimilarArticleLister
 
 type NullSimilarArticleLister struct{}
 
 func (NullSimilarArticleLister) ListSimilarArticles(
 	ctx context.Context,
-	id string,
+	hashIDs []string,
 	count int,
 ) ([]domain.SimilarArticle, error) {
 	return nil, nil
