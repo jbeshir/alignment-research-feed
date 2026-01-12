@@ -66,3 +66,25 @@ INSERT INTO article_ratings (
 ON DUPLICATE KEY UPDATE
     thumbs_down = sqlc.arg(thumbs_down),
     thumbs_up = IF(sqlc.arg(thumbs_down), FALSE, thumbs_up);
+
+-- name: GetUserVector :one
+SELECT vector_sum, vector_count FROM user_recommendation_vectors WHERE user_id = ?;
+
+-- name: UpsertUserVectorAdd :exec
+INSERT INTO user_recommendation_vectors (user_id, vector_sum, vector_count, updated_at)
+VALUES (?, ?, 1, NOW())
+ON DUPLICATE KEY UPDATE
+    vector_sum = ?,
+    vector_count = vector_count + 1,
+    updated_at = NOW();
+
+-- name: UpdateUserVectorSubtract :exec
+UPDATE user_recommendation_vectors
+SET vector_sum = ?, vector_count = vector_count - 1, updated_at = NOW()
+WHERE user_id = ?;
+
+-- name: GetRatingVectorAdded :one
+SELECT vector_added FROM article_ratings WHERE user_id = ? AND article_hash_id = ?;
+
+-- name: SetRatingVectorAdded :exec
+UPDATE article_ratings SET vector_added = ? WHERE user_id = ? AND article_hash_id = ?;

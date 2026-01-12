@@ -9,6 +9,12 @@ import (
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
 )
 
+// Bool string constants for route parameters.
+const (
+	boolTrue  = "true"
+	boolFalse = "false"
+)
+
 type feedbackSetter func(ctx context.Context, hashID string, userID string, value bool) error
 
 func handleFeedback(
@@ -25,9 +31,9 @@ func handleFeedback(
 
 	var value bool
 	switch vars[paramName] {
-	case "true":
+	case boolTrue:
 		value = true
-	case "false":
+	case boolFalse:
 		value = false
 	default:
 		logger.ErrorContext(r.Context(), "invalid status", "status", vars[paramName])
