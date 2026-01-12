@@ -64,17 +64,16 @@ func setupDatasetRepository(ctx context.Context) (datasources.DatasetRepository,
 	return mysql.New(db), nil
 }
 
-func setupSimilarityRepository(ctx context.Context) (datasources.SimilarArticleLister, error) {
+func setupSimilarityRepository(ctx context.Context) (datasources.SimilarityRepository, error) {
 	switch driver := MustGetEnvAsString(ctx, "SIMILARITY_DRIVER"); driver {
 	case "null":
-		return datasources.NullSimilarArticleLister{}, nil
+		return datasources.NullSimilarityRepository{}, nil
 	case "pinecone":
-		similarity, err := pinecone.NewClient(ctx, MustGetEnvAsString(ctx, "PINECONE_API_KEY"))
+		client, err := pinecone.NewClient(ctx, MustGetEnvAsString(ctx, "PINECONE_API_KEY"))
 		if err != nil {
 			return nil, fmt.Errorf("connecting to pinecone: %w", err)
 		}
-
-		return similarity, nil
+		return client, nil
 	default:
 		return nil, fmt.Errorf("unknown similarity driver [%s]", driver)
 	}

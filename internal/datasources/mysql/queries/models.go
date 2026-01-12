@@ -89,6 +89,7 @@ type ArticleRating struct {
 	HaveRead      sql.NullBool
 	ThumbsUp      sql.NullBool
 	ThumbsDown    sql.NullBool
+	VectorAdded   bool
 }
 
 type Summary struct {
@@ -96,4 +97,11 @@ type Summary struct {
 	Text      string
 	Source    sql.NullString
 	ArticleID int32
+}
+
+type UserRecommendationVector struct {
+	UserID      string
+	VectorSum   []byte
+	VectorCount int32
+	UpdatedAt   time.Time
 }

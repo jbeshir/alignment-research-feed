@@ -94,6 +94,38 @@ func (q *Queries) FetchArticlesByID(ctx context.Context, arg FetchArticlesByIDPa
 	return items, nil
 }
 
+const getRatingVectorAdded = `-- name: GetRatingVectorAdded :one
+SELECT vector_added FROM article_ratings WHERE user_id = ? AND article_hash_id = ?
+`
+
+type GetRatingVectorAddedParams struct {
+	UserID        string
+	ArticleHashID string
+}
+
+func (q *Queries) GetRatingVectorAdded(ctx context.Context, arg GetRatingVectorAddedParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, getRatingVectorAdded, arg.UserID, arg.ArticleHashID)
+	var vector_added bool
+	err := row.Scan(&vector_added)
+	return vector_added, err
+}
+
+const getUserVector = `-- name: GetUserVector :one
+SELECT vector_sum, vector_count FROM user_recommendation_vectors WHERE user_id = ?
+`
+
+type GetUserVectorRow struct {
+	VectorSum   []byte
+	VectorCount int32
+}
+
+func (q *Queries) GetUserVector(ctx context.Context, userID string) (GetUserVectorRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserVector, userID)
+	var i GetUserVectorRow
+	err := row.Scan(&i.VectorSum, &i.VectorCount)
+	return i, err
+}
+
 const insertArticle = `-- name: InsertArticle :exec
 INSERT INTO articles (
                       hash_id,
@@ -249,5 +281,56 @@ func (q *Queries) SetArticleThumbsUp(ctx context.Context, arg SetArticleThumbsUp
 		arg.ThumbsUp,
 		arg.ThumbsUp,
 	)
+	return err
+}
+
+const setRatingVectorAdded = `-- name: SetRatingVectorAdded :exec
+UPDATE article_ratings SET vector_added = ? WHERE user_id = ? AND article_hash_id = ?
+`
+
+type SetRatingVectorAddedParams struct {
+	VectorAdded   bool
+	UserID        string
+	ArticleHashID string
+}
+
+func (q *Queries) SetRatingVectorAdded(ctx context.Context, arg SetRatingVectorAddedParams) error {
+	_, err := q.db.ExecContext(ctx, setRatingVectorAdded, arg.VectorAdded, arg.UserID, arg.ArticleHashID)
+	return err
+}
+
+const updateUserVectorSubtract = `-- name: UpdateUserVectorSubtract :exec
+UPDATE user_recommendation_vectors
+SET vector_sum = ?, vector_count = vector_count - 1, updated_at = NOW()
+WHERE user_id = ?
+`
+
+type UpdateUserVectorSubtractParams struct {
+	VectorSum []byte
+	UserID    string
+}
+
+func (q *Queries) UpdateUserVectorSubtract(ctx context.Context, arg UpdateUserVectorSubtractParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserVectorSubtract, arg.VectorSum, arg.UserID)
+	return err
+}
+
+const upsertUserVectorAdd = `-- name: UpsertUserVectorAdd :exec
+INSERT INTO user_recommendation_vectors (user_id, vector_sum, vector_count, updated_at)
+VALUES (?, ?, 1, NOW())
+ON DUPLICATE KEY UPDATE
+    vector_sum = ?,
+    vector_count = vector_count + 1,
+    updated_at = NOW()
+`
+
+type UpsertUserVectorAddParams struct {
+	UserID      string
+	VectorSum   []byte
+	VectorSum_2 []byte
+}
+
+func (q *Queries) UpsertUserVectorAdd(ctx context.Context, arg UpsertUserVectorAddParams) error {
+	_, err := q.db.ExecContext(ctx, upsertUserVectorAdd, arg.UserID, arg.VectorSum, arg.VectorSum_2)
 	return err
 }

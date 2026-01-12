@@ -3,7 +3,10 @@ package mysql
 import (
 	"context"
 	"database/sql"
+	"encoding/binary"
+	"errors"
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/huandu/go-sqlbuilder"
@@ -254,4 +257,205 @@ func buildArticlesOrder(options domain.ArticleListOptions) ([]string, error) {
 	}
 
 	return orderings, nil
+}
+
+// GetUserVector retrieves the stored vector sum and count for a user.
+func (r *Repository) GetUserVector(ctx context.Context, userID string) ([]float32, int, error) {
+	return getUserVectorWithQueries(ctx, r.queries, userID)
+}
+
+// AddArticleVectorToUser atomically checks if the article's vector has already been added,
+// and if not, adds it to the user's vector sum and marks it as added.
+// Returns true if the vector was added, false if it was already added.
+func (r *Repository) AddArticleVectorToUser(
+	ctx context.Context, userID, articleHashID string, vector []float32,
+) (bool, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, fmt.Errorf("starting transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	qtx := r.queries.WithTx(tx)
+
+	// Check if vector was already added
+	added, err := qtx.GetRatingVectorAdded(ctx, queries.GetRatingVectorAddedParams{
+		UserID:        userID,
+		ArticleHashID: articleHashID,
+	})
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return false, fmt.Errorf("checking vector added status: %w", err)
+	}
+	if added {
+		return false, nil // Already added
+	}
+
+	// Get current vector sum
+	currentSum, _, err := getUserVectorWithQueries(ctx, qtx, userID)
+	if err != nil {
+		return false, fmt.Errorf("getting current user vector: %w", err)
+	}
+
+	var newSum []float32
+	if currentSum == nil {
+		newSum = vector
+	} else {
+		newSum, err = addVectors(currentSum, vector)
+		if err != nil {
+			return false, fmt.Errorf("adding vectors: %w", err)
+		}
+	}
+
+	newSumBytes := float32SliceToBytes(newSum)
+	if err := qtx.UpsertUserVectorAdd(ctx, queries.UpsertUserVectorAddParams{
+		UserID:      userID,
+		VectorSum:   newSumBytes,
+		VectorSum_2: newSumBytes,
+	}); err != nil {
+		return false, fmt.Errorf("upserting user vector: %w", err)
+	}
+
+	// Mark vector as added
+	if err := qtx.SetRatingVectorAdded(ctx, queries.SetRatingVectorAddedParams{
+		VectorAdded:   true,
+		UserID:        userID,
+		ArticleHashID: articleHashID,
+	}); err != nil {
+		return false, fmt.Errorf("marking vector as added: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return false, fmt.Errorf("committing transaction: %w", err)
+	}
+
+	return true, nil
+}
+
+// SubtractArticleVectorFromUser atomically checks if the article's vector was previously added,
+// and if so, subtracts it from the user's vector sum and marks it as removed.
+// If vector is nil, only clears the added flag without modifying the sum.
+// Returns true if the flag was cleared, false if it wasn't set.
+func (r *Repository) SubtractArticleVectorFromUser(
+	ctx context.Context, userID, articleHashID string, vector []float32,
+) (bool, error) {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return false, fmt.Errorf("starting transaction: %w", err)
+	}
+	defer func() { _ = tx.Rollback() }()
+
+	qtx := r.queries.WithTx(tx)
+
+	// Check if vector was added
+	added, err := qtx.GetRatingVectorAdded(ctx, queries.GetRatingVectorAddedParams{
+		UserID:        userID,
+		ArticleHashID: articleHashID,
+	})
+	if err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return false, fmt.Errorf("checking vector added status: %w", err)
+	}
+	if !added {
+		return false, nil // Wasn't added
+	}
+
+	// Subtract vector from sum if provided
+	if vector != nil {
+		currentSum, _, err := getUserVectorWithQueries(ctx, qtx, userID)
+		if err != nil {
+			return false, fmt.Errorf("getting current user vector: %w", err)
+		}
+
+		if currentSum != nil {
+			newSum, err := subtractVectors(currentSum, vector)
+			if err != nil {
+				return false, fmt.Errorf("subtracting vectors: %w", err)
+			}
+			newSumBytes := float32SliceToBytes(newSum)
+
+			if err := qtx.UpdateUserVectorSubtract(ctx, queries.UpdateUserVectorSubtractParams{
+				VectorSum: newSumBytes,
+				UserID:    userID,
+			}); err != nil {
+				return false, fmt.Errorf("updating user vector: %w", err)
+			}
+		}
+	}
+
+	// Mark vector as removed
+	if err := qtx.SetRatingVectorAdded(ctx, queries.SetRatingVectorAddedParams{
+		VectorAdded:   false,
+		UserID:        userID,
+		ArticleHashID: articleHashID,
+	}); err != nil {
+		return false, fmt.Errorf("marking vector as removed: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return false, fmt.Errorf("committing transaction: %w", err)
+	}
+
+	return true, nil
+}
+
+// getUserVectorWithQueries retrieves the user vector sum and count using the provided queries object.
+func getUserVectorWithQueries(
+	ctx context.Context, q *queries.Queries, userID string,
+) ([]float32, int, error) {
+	row, err := q.GetUserVector(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, 0, nil
+		}
+		return nil, 0, fmt.Errorf("fetching user vector: %w", err)
+	}
+
+	vector, err := bytesToFloat32Slice(row.VectorSum)
+	if err != nil {
+		return nil, 0, fmt.Errorf("decoding user vector: %w", err)
+	}
+
+	return vector, int(row.VectorCount), nil
+}
+
+// Helper functions for binary vector serialization
+
+func float32SliceToBytes(floats []float32) []byte {
+	bytes := make([]byte, len(floats)*4)
+	for i, f := range floats {
+		binary.LittleEndian.PutUint32(bytes[i*4:], math.Float32bits(f))
+	}
+	return bytes
+}
+
+func bytesToFloat32Slice(bytes []byte) ([]float32, error) {
+	if len(bytes)%4 != 0 {
+		return nil, fmt.Errorf("invalid byte length for float32 slice: %d", len(bytes))
+	}
+	floats := make([]float32, len(bytes)/4)
+	for i := range floats {
+		floats[i] = math.Float32frombits(binary.LittleEndian.Uint32(bytes[i*4:]))
+	}
+	return floats, nil
+}
+
+func addVectors(a, b []float32) ([]float32, error) {
+	if len(a) != len(b) {
+		return nil, fmt.Errorf("vector length mismatch: %d vs %d", len(a), len(b))
+	}
+	result := make([]float32, len(a))
+	for i := range a {
+		result[i] = a[i] + b[i]
+	}
+	return result, nil
+}
+
+func subtractVectors(a, b []float32) ([]float32, error) {
+	if len(a) != len(b) {
+		return nil, fmt.Errorf("vector length mismatch: %d vs %d", len(a), len(b))
+	}
+	result := make([]float32, len(a))
+	for i := range a {
+		result[i] = a[i] - b[i]
+	}
+	return result, nil
 }

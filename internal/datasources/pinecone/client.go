@@ -11,7 +11,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-var _ datasources.SimilarArticleLister = (*Client)(nil)
+var _ datasources.SimilarityRepository = (*Client)(nil)
 
 type Client struct {
 	pinecone *pinecone.Client
@@ -267,4 +267,52 @@ func averageVectors(vectors [][]float32) []float32 {
 	}
 
 	return result
+}
+
+// FetchArticleVector retrieves the vector for an article from Pinecone.
+func (c *Client) FetchArticleVector(ctx context.Context, hashID string) ([]float32, error) {
+	idxConn, err := c.pinecone.Index(pinecone.NewIndexConnParams{
+		Host:      c.index.Host,
+		Namespace: "normal",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating pinecone index connection: %w", err)
+	}
+	defer func() {
+		if closeErr := idxConn.Close(); closeErr != nil {
+			_ = closeErr
+		}
+	}()
+
+	return c.getBaseSearchVector(ctx, idxConn, hashID)
+}
+
+// ListSimilarArticlesByVector queries Pinecone with a pre-computed vector.
+func (c *Client) ListSimilarArticlesByVector(
+	ctx context.Context,
+	excludeHashIDs []string,
+	vector []float32,
+	limit int,
+) ([]domain.SimilarArticle, error) {
+	if limit > 10000 {
+		return nil, fmt.Errorf("limit value too high [%d]", limit)
+	}
+	if len(vector) == 0 {
+		return nil, nil
+	}
+
+	idxConn, err := c.pinecone.Index(pinecone.NewIndexConnParams{
+		Host:      c.index.Host,
+		Namespace: "normal",
+	})
+	if err != nil {
+		return nil, fmt.Errorf("creating pinecone index connection: %w", err)
+	}
+	defer func() {
+		if closeErr := idxConn.Close(); closeErr != nil {
+			_ = closeErr
+		}
+	}()
+
+	return c.findSimilarArticles(ctx, idxConn, excludeHashIDs, vector, limit)
 }

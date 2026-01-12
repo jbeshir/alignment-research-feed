@@ -12,7 +12,7 @@ import (
 
 func MakeRouter(
 	dataset datasources.DatasetRepository,
-	similarity datasources.SimilarArticleLister,
+	similarity datasources.SimilarityRepository,
 	rssFeedBaseURL, rssFeedAuthorName, rssFeedAuthorEmail string,
 	latestCacheMaxAge time.Duration,
 	authMiddleware func(http.Handler) http.Handler,
@@ -21,6 +21,16 @@ func MakeRouter(
 	r.Use(corsMiddleware)
 	r.Use(authMiddleware)
 
+	// Create shared commands for vector updates
+	addVectorCmd := &command.AddArticleToUserVector{
+		ArticleVectorFetcher: similarity,
+		UserVectorSyncer:     dataset,
+	}
+	removeVectorCmd := &command.RemoveArticleFromUserVector{
+		ArticleVectorFetcher: similarity,
+		UserVectorSyncer:     dataset,
+	}
+
 	r.Handle("/v1/articles", controller.ArticlesList{
 		Lister:      dataset,
 		CacheMaxAge: latestCacheMaxAge,
@@ -28,9 +38,9 @@ func MakeRouter(
 
 	r.Handle("/v1/articles/recommended", requireAuthMiddleware(controller.RecommendedArticlesList{
 		Command: &command.RecommendArticles{
-			ThumbsUpLister:   dataset,
-			SimilarityLister: similarity,
+			VectorSimilarity: similarity,
 			ArticleFetcher:   dataset,
+			UserVectorGetter: dataset,
 		},
 	})).Methods(http.MethodGet, http.MethodOptions)
 
@@ -51,13 +61,16 @@ func MakeRouter(
 	})).Methods(http.MethodPost, http.MethodOptions)
 
 	r.Handle("/v1/articles/{article_id}/thumbs_up/{thumbs_up}", requireAuthMiddleware(controller.ArticleThumbsUpSet{
-		Fetcher:        dataset,
-		ThumbsUpSetter: dataset,
+		Fetcher:         dataset,
+		ThumbsUpSetter:  dataset,
+		AddVectorCmd:    addVectorCmd,
+		RemoveVectorCmd: removeVectorCmd,
 	})).Methods(http.MethodPost, http.MethodOptions)
 
 	r.Handle("/v1/articles/{article_id}/thumbs_down/{thumbs_down}", requireAuthMiddleware(controller.ArticleThumbsDownSet{
 		Fetcher:          dataset,
 		ThumbsDownSetter: dataset,
+		RemoveVectorCmd:  removeVectorCmd,
 	})).Methods(http.MethodPost, http.MethodOptions)
 
 	rssFeeds := []controller.RSS{
