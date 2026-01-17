@@ -69,7 +69,11 @@ func setupSimilarityRepository(ctx context.Context) (datasources.SimilarityRepos
 	case "null":
 		return datasources.NullSimilarityRepository{}, nil
 	case "pinecone":
-		client, err := pinecone.NewClient(ctx, MustGetEnvAsString(ctx, "PINECONE_API_KEY"))
+		client, err := pinecone.NewClient(
+			ctx,
+			MustGetEnvAsString(ctx, "PINECONE_API_KEY"),
+			MustGetEnvAsString(ctx, "PINECONE_INDEX_NAME"),
+		)
 		if err != nil {
 			return nil, fmt.Errorf("connecting to pinecone: %w", err)
 		}
