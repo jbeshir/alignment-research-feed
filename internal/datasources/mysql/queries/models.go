@@ -90,6 +90,8 @@ type ArticleRating struct {
 	ThumbsUp      sql.NullBool
 	ThumbsDown    sql.NullBool
 	VectorAdded   bool
+	DateRead      sql.NullTime
+	DateReviewed  sql.NullTime
 }
 
 type Summary struct {

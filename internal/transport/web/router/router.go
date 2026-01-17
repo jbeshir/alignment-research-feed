@@ -44,6 +44,24 @@ func MakeRouter(
 		},
 	})).Methods(http.MethodGet, http.MethodOptions)
 
+	r.Handle("/v1/articles/unreviewed", requireAuthMiddleware(controller.UserArticlesList{
+		Fetcher:    dataset,
+		ListFunc:   dataset.ListUnreviewedArticleIDs,
+		ListEntity: "unreviewed",
+	})).Methods(http.MethodGet, http.MethodOptions)
+
+	r.Handle("/v1/articles/liked", requireAuthMiddleware(controller.UserArticlesList{
+		Fetcher:    dataset,
+		ListFunc:   dataset.ListLikedArticleIDs,
+		ListEntity: "liked",
+	})).Methods(http.MethodGet, http.MethodOptions)
+
+	r.Handle("/v1/articles/disliked", requireAuthMiddleware(controller.UserArticlesList{
+		Fetcher:    dataset,
+		ListFunc:   dataset.ListDislikedArticleIDs,
+		ListEntity: "disliked",
+	})).Methods(http.MethodGet, http.MethodOptions)
+
 	r.Handle("/v1/articles/{article_id}", controller.ArticleGet{
 		Fetcher:     dataset,
 		CacheMaxAge: latestCacheMaxAge,

@@ -25,31 +25,79 @@ type Repository struct {
 }
 
 func (r *Repository) SetArticleRead(ctx context.Context, hashID, userID string, read bool) error {
+	var dateRead sql.NullTime
+	if read {
+		dateRead = sql.NullTime{Time: time.Now(), Valid: true}
+	}
 	return r.queries.SetArticleRead(ctx, queries.SetArticleReadParams{
 		ArticleHashID: hashID,
 		UserID:        userID,
 		HaveRead:      sql.NullBool{Bool: read, Valid: true},
+		DateRead:      dateRead,
 	})
 }
 
 func (r *Repository) SetArticleThumbsUp(ctx context.Context, hashID, userID string, thumbsUp bool) error {
+	var dateReviewed sql.NullTime
+	if thumbsUp {
+		dateReviewed = sql.NullTime{Time: time.Now(), Valid: true}
+	}
 	return r.queries.SetArticleThumbsUp(ctx, queries.SetArticleThumbsUpParams{
 		ArticleHashID: hashID,
 		UserID:        userID,
 		ThumbsUp:      sql.NullBool{Bool: thumbsUp, Valid: true},
+		DateReviewed:  dateReviewed,
 	})
 }
 
 func (r *Repository) SetArticleThumbsDown(ctx context.Context, hashID, userID string, thumbsDown bool) error {
+	var dateReviewed sql.NullTime
+	if thumbsDown {
+		dateReviewed = sql.NullTime{Time: time.Now(), Valid: true}
+	}
 	return r.queries.SetArticleThumbsDown(ctx, queries.SetArticleThumbsDownParams{
 		ArticleHashID: hashID,
 		UserID:        userID,
 		ThumbsDown:    sql.NullBool{Bool: thumbsDown, Valid: true},
+		DateReviewed:  dateReviewed,
 	})
 }
 
 func (r *Repository) ListThumbsUpArticleIDs(ctx context.Context, userID string) ([]string, error) {
 	return r.queries.ListThumbsUpArticleIDs(ctx, userID)
+}
+
+func (r *Repository) ListUnreviewedArticleIDs(
+	ctx context.Context, userID string, page, pageSize int,
+) ([]string, error) {
+	limit, offset := paginationToLimitOffset(page, pageSize)
+	return r.queries.ListUnreviewedArticleIDs(ctx, queries.ListUnreviewedArticleIDsParams{
+		UserID: userID,
+		Limit:  limit,
+		Offset: offset,
+	})
+}
+
+func (r *Repository) ListLikedArticleIDs(
+	ctx context.Context, userID string, page, pageSize int,
+) ([]string, error) {
+	limit, offset := paginationToLimitOffset(page, pageSize)
+	return r.queries.ListLikedArticleIDs(ctx, queries.ListLikedArticleIDsParams{
+		UserID: userID,
+		Limit:  limit,
+		Offset: offset,
+	})
+}
+
+func (r *Repository) ListDislikedArticleIDs(
+	ctx context.Context, userID string, page, pageSize int,
+) ([]string, error) {
+	limit, offset := paginationToLimitOffset(page, pageSize)
+	return r.queries.ListDislikedArticleIDs(ctx, queries.ListDislikedArticleIDsParams{
+		UserID: userID,
+		Limit:  limit,
+		Offset: offset,
+	})
 }
 
 func New(db *sql.DB) *Repository {
@@ -458,4 +506,21 @@ func subtractVectors(a, b []float32) ([]float32, error) {
 		result[i] = a[i] - b[i]
 	}
 	return result, nil
+}
+
+// paginationToLimitOffset converts page/pageSize to limit/offset with bounds checking.
+// Clamps values to int32 range to prevent overflow.
+func paginationToLimitOffset(page, pageSize int) (limit, offset int32) {
+	if pageSize > math.MaxInt32 {
+		pageSize = math.MaxInt32
+	}
+	limit = int32(pageSize) //nolint:gosec // bounds checked above
+
+	off := (page - 1) * pageSize
+	if off > math.MaxInt32 {
+		off = math.MaxInt32
+	}
+	offset = int32(off) //nolint:gosec // bounds checked above
+
+	return limit, offset
 }
