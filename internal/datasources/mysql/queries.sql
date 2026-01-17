@@ -39,9 +39,12 @@ INSERT INTO article_ratings (
         user_id,
         have_read,
         thumbs_up,
-        thumbs_down
-    ) VALUES (?, ?, sqlc.arg(have_read), FALSE, FALSE)
-ON DUPLICATE KEY UPDATE have_read = sqlc.arg(have_read);
+        thumbs_down,
+        date_read
+    ) VALUES (?, ?, sqlc.arg(have_read), FALSE, FALSE, sqlc.arg(date_read))
+ON DUPLICATE KEY UPDATE
+    have_read = sqlc.arg(have_read),
+    date_read = COALESCE(date_read, sqlc.arg(date_read));
 
 -- name: SetArticleThumbsUp :exec
 INSERT INTO article_ratings (
@@ -49,11 +52,13 @@ INSERT INTO article_ratings (
         user_id,
         have_read,
         thumbs_up,
-        thumbs_down
-    ) VALUES (?, ?, FALSE, sqlc.arg(thumbs_up), FALSE)
+        thumbs_down,
+        date_reviewed
+    ) VALUES (?, ?, FALSE, sqlc.arg(thumbs_up), FALSE, sqlc.arg(date_reviewed))
 ON DUPLICATE KEY UPDATE
     thumbs_up = sqlc.arg(thumbs_up),
-    thumbs_down = IF(sqlc.arg(thumbs_up), FALSE, thumbs_down);
+    thumbs_down = IF(sqlc.arg(thumbs_up), FALSE, thumbs_down),
+    date_reviewed = COALESCE(date_reviewed, sqlc.arg(date_reviewed));
 
 -- name: SetArticleThumbsDown :exec
 INSERT INTO article_ratings (
@@ -61,11 +66,13 @@ INSERT INTO article_ratings (
         user_id,
         have_read,
         thumbs_up,
-        thumbs_down
-    ) VALUES (?, ?, FALSE, FALSE, sqlc.arg(thumbs_down))
+        thumbs_down,
+        date_reviewed
+    ) VALUES (?, ?, FALSE, FALSE, sqlc.arg(thumbs_down), sqlc.arg(date_reviewed))
 ON DUPLICATE KEY UPDATE
     thumbs_down = sqlc.arg(thumbs_down),
-    thumbs_up = IF(sqlc.arg(thumbs_down), FALSE, thumbs_up);
+    thumbs_up = IF(sqlc.arg(thumbs_down), FALSE, thumbs_up),
+    date_reviewed = COALESCE(date_reviewed, sqlc.arg(date_reviewed));
 
 -- name: GetUserVector :one
 SELECT vector_sum, vector_count FROM user_recommendation_vectors WHERE user_id = ?;
@@ -88,3 +95,24 @@ SELECT vector_added FROM article_ratings WHERE user_id = ? AND article_hash_id =
 
 -- name: SetRatingVectorAdded :exec
 UPDATE article_ratings SET vector_added = ? WHERE user_id = ? AND article_hash_id = ?;
+
+-- name: ListUnreviewedArticleIDs :many
+SELECT article_hash_id FROM article_ratings
+WHERE user_id = ?
+    AND have_read = TRUE
+    AND (thumbs_up = FALSE OR thumbs_up IS NULL)
+    AND (thumbs_down = FALSE OR thumbs_down IS NULL)
+ORDER BY date_read DESC
+LIMIT ? OFFSET ?;
+
+-- name: ListLikedArticleIDs :many
+SELECT article_hash_id FROM article_ratings
+WHERE user_id = ? AND thumbs_up = TRUE
+ORDER BY date_reviewed DESC
+LIMIT ? OFFSET ?;
+
+-- name: ListDislikedArticleIDs :many
+SELECT article_hash_id FROM article_ratings
+WHERE user_id = ? AND thumbs_down = TRUE
+ORDER BY date_reviewed DESC
+LIMIT ? OFFSET ?;

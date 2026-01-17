@@ -9,6 +9,9 @@ import (
 type DatasetRepository interface {
 	LatestArticleLister
 	ThumbsUpArticleLister
+	UnreviewedArticleLister
+	LikedArticleLister
+	DislikedArticleLister
 	ArticleFetcher
 	ArticleReadSetter
 	ArticleThumbsUpSetter
@@ -61,6 +64,18 @@ type LatestArticleLister interface {
 
 type ThumbsUpArticleLister interface {
 	ListThumbsUpArticleIDs(ctx context.Context, userID string) ([]string, error)
+}
+
+type UnreviewedArticleLister interface {
+	ListUnreviewedArticleIDs(ctx context.Context, userID string, page, pageSize int) ([]string, error)
+}
+
+type LikedArticleLister interface {
+	ListLikedArticleIDs(ctx context.Context, userID string, page, pageSize int) ([]string, error)
+}
+
+type DislikedArticleLister interface {
+	ListDislikedArticleIDs(ctx context.Context, userID string, page, pageSize int) ([]string, error)
 }
 
 type UserVectorGetter interface {

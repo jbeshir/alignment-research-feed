@@ -169,6 +169,78 @@ func (q *Queries) InsertArticle(ctx context.Context, arg InsertArticleParams) er
 	return err
 }
 
+const listDislikedArticleIDs = `-- name: ListDislikedArticleIDs :many
+SELECT article_hash_id FROM article_ratings
+WHERE user_id = ? AND thumbs_down = TRUE
+ORDER BY date_reviewed DESC
+LIMIT ? OFFSET ?
+`
+
+type ListDislikedArticleIDsParams struct {
+	UserID string
+	Limit  int32
+	Offset int32
+}
+
+func (q *Queries) ListDislikedArticleIDs(ctx context.Context, arg ListDislikedArticleIDsParams) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listDislikedArticleIDs, arg.UserID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var article_hash_id string
+		if err := rows.Scan(&article_hash_id); err != nil {
+			return nil, err
+		}
+		items = append(items, article_hash_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listLikedArticleIDs = `-- name: ListLikedArticleIDs :many
+SELECT article_hash_id FROM article_ratings
+WHERE user_id = ? AND thumbs_up = TRUE
+ORDER BY date_reviewed DESC
+LIMIT ? OFFSET ?
+`
+
+type ListLikedArticleIDsParams struct {
+	UserID string
+	Limit  int32
+	Offset int32
+}
+
+func (q *Queries) ListLikedArticleIDs(ctx context.Context, arg ListLikedArticleIDsParams) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listLikedArticleIDs, arg.UserID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var article_hash_id string
+		if err := rows.Scan(&article_hash_id); err != nil {
+			return nil, err
+		}
+		items = append(items, article_hash_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listThumbsUpArticleIDs = `-- name: ListThumbsUpArticleIDs :many
 SELECT article_hash_id FROM article_ratings
 WHERE user_id = ? AND thumbs_up = TRUE
@@ -197,21 +269,64 @@ func (q *Queries) ListThumbsUpArticleIDs(ctx context.Context, userID string) ([]
 	return items, nil
 }
 
+const listUnreviewedArticleIDs = `-- name: ListUnreviewedArticleIDs :many
+SELECT article_hash_id FROM article_ratings
+WHERE user_id = ?
+    AND have_read = TRUE
+    AND (thumbs_up = FALSE OR thumbs_up IS NULL)
+    AND (thumbs_down = FALSE OR thumbs_down IS NULL)
+ORDER BY date_read DESC
+LIMIT ? OFFSET ?
+`
+
+type ListUnreviewedArticleIDsParams struct {
+	UserID string
+	Limit  int32
+	Offset int32
+}
+
+func (q *Queries) ListUnreviewedArticleIDs(ctx context.Context, arg ListUnreviewedArticleIDsParams) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listUnreviewedArticleIDs, arg.UserID, arg.Limit, arg.Offset)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var article_hash_id string
+		if err := rows.Scan(&article_hash_id); err != nil {
+			return nil, err
+		}
+		items = append(items, article_hash_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const setArticleRead = `-- name: SetArticleRead :exec
 INSERT INTO article_ratings (
         article_hash_id,
         user_id,
         have_read,
         thumbs_up,
-        thumbs_down
-    ) VALUES (?, ?, ?, FALSE, FALSE)
-ON DUPLICATE KEY UPDATE have_read = ?
+        thumbs_down,
+        date_read
+    ) VALUES (?, ?, ?, FALSE, FALSE, ?)
+ON DUPLICATE KEY UPDATE
+    have_read = ?,
+    date_read = COALESCE(date_read, ?)
 `
 
 type SetArticleReadParams struct {
 	ArticleHashID string
 	UserID        string
 	HaveRead      sql.NullBool
+	DateRead      sql.NullTime
 }
 
 func (q *Queries) SetArticleRead(ctx context.Context, arg SetArticleReadParams) error {
@@ -219,7 +334,9 @@ func (q *Queries) SetArticleRead(ctx context.Context, arg SetArticleReadParams) 
 		arg.ArticleHashID,
 		arg.UserID,
 		arg.HaveRead,
+		arg.DateRead,
 		arg.HaveRead,
+		arg.DateRead,
 	)
 	return err
 }
@@ -230,17 +347,20 @@ INSERT INTO article_ratings (
         user_id,
         have_read,
         thumbs_up,
-        thumbs_down
-    ) VALUES (?, ?, FALSE, FALSE, ?)
+        thumbs_down,
+        date_reviewed
+    ) VALUES (?, ?, FALSE, FALSE, ?, ?)
 ON DUPLICATE KEY UPDATE
     thumbs_down = ?,
-    thumbs_up = IF(?, FALSE, thumbs_up)
+    thumbs_up = IF(?, FALSE, thumbs_up),
+    date_reviewed = COALESCE(date_reviewed, ?)
 `
 
 type SetArticleThumbsDownParams struct {
 	ArticleHashID string
 	UserID        string
 	ThumbsDown    sql.NullBool
+	DateReviewed  sql.NullTime
 }
 
 func (q *Queries) SetArticleThumbsDown(ctx context.Context, arg SetArticleThumbsDownParams) error {
@@ -248,8 +368,10 @@ func (q *Queries) SetArticleThumbsDown(ctx context.Context, arg SetArticleThumbs
 		arg.ArticleHashID,
 		arg.UserID,
 		arg.ThumbsDown,
+		arg.DateReviewed,
 		arg.ThumbsDown,
 		arg.ThumbsDown,
+		arg.DateReviewed,
 	)
 	return err
 }
@@ -260,17 +382,20 @@ INSERT INTO article_ratings (
         user_id,
         have_read,
         thumbs_up,
-        thumbs_down
-    ) VALUES (?, ?, FALSE, ?, FALSE)
+        thumbs_down,
+        date_reviewed
+    ) VALUES (?, ?, FALSE, ?, FALSE, ?)
 ON DUPLICATE KEY UPDATE
     thumbs_up = ?,
-    thumbs_down = IF(?, FALSE, thumbs_down)
+    thumbs_down = IF(?, FALSE, thumbs_down),
+    date_reviewed = COALESCE(date_reviewed, ?)
 `
 
 type SetArticleThumbsUpParams struct {
 	ArticleHashID string
 	UserID        string
 	ThumbsUp      sql.NullBool
+	DateReviewed  sql.NullTime
 }
 
 func (q *Queries) SetArticleThumbsUp(ctx context.Context, arg SetArticleThumbsUpParams) error {
@@ -278,8 +403,10 @@ func (q *Queries) SetArticleThumbsUp(ctx context.Context, arg SetArticleThumbsUp
 		arg.ArticleHashID,
 		arg.UserID,
 		arg.ThumbsUp,
+		arg.DateReviewed,
 		arg.ThumbsUp,
 		arg.ThumbsUp,
+		arg.DateReviewed,
 	)
 	return err
 }
