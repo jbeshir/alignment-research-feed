@@ -10,6 +10,3 @@ CREATE TABLE IF NOT EXISTS `user_recommendation_vectors` (
 -- Track whether each rating's vector has been added to the user's sum
 ALTER TABLE `article_ratings`
     ADD COLUMN `vector_added` BOOLEAN NOT NULL DEFAULT FALSE;
-
-CREATE INDEX `idx_article_ratings_vector_pending`
-    ON `article_ratings` (`user_id`, `vector_added`, `thumbs_up`);

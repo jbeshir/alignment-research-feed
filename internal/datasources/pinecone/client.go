@@ -21,6 +21,7 @@ type Client struct {
 func NewClient(
 	ctx context.Context,
 	apiKey string,
+	indexName string,
 ) (*Client, error) {
 	pc, err := pinecone.NewClient(pinecone.NewClientParams{
 		ApiKey:     apiKey,
@@ -33,7 +34,7 @@ func NewClient(
 		return nil, fmt.Errorf("creating pinecone client: %w", err)
 	}
 
-	idx, err := pc.DescribeIndex(ctx, "alignment-research-dataset")
+	idx, err := pc.DescribeIndex(ctx, indexName)
 	if err != nil {
 		return nil, fmt.Errorf("retrieving pinecone index metadata for dataset: %w", err)
 	}
