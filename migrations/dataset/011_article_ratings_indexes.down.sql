@@ -1,2 +1,0 @@
-DROP INDEX idx_article_ratings_user_unreviewed ON article_ratings;
-DROP INDEX idx_article_ratings_user_reviewed ON article_ratings;

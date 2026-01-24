@@ -30,37 +30,96 @@ func (r *Repository) SetArticleRead(ctx context.Context, hashID, userID string, 
 		dateRead = sql.NullTime{Time: time.Now(), Valid: true}
 	}
 	return r.queries.SetArticleRead(ctx, queries.SetArticleReadParams{
-		ArticleHashID: hashID,
 		UserID:        userID,
-		HaveRead:      sql.NullBool{Bool: read, Valid: true},
+		ArticleHashID: hashID,
+		HaveRead:      read,
 		DateRead:      dateRead,
 	})
 }
 
-func (r *Repository) SetArticleThumbsUp(ctx context.Context, hashID, userID string, thumbsUp bool) error {
-	var dateReviewed sql.NullTime
-	if thumbsUp {
-		dateReviewed = sql.NullTime{Time: time.Now(), Valid: true}
-	}
-	return r.queries.SetArticleThumbsUp(ctx, queries.SetArticleThumbsUpParams{
-		ArticleHashID: hashID,
-		UserID:        userID,
-		ThumbsUp:      sql.NullBool{Bool: thumbsUp, Valid: true},
-		DateReviewed:  dateReviewed,
-	})
+// interactionState captures the current state of a user-article interaction.
+type interactionState struct {
+	currentHaveRead bool
+	currentDateRead sql.NullTime
 }
 
-func (r *Repository) SetArticleThumbsDown(ctx context.Context, hashID, userID string, thumbsDown bool) error {
-	var dateReviewed sql.NullTime
-	if thumbsDown {
-		dateReviewed = sql.NullTime{Time: time.Now(), Valid: true}
+// SetArticleRating atomically sets thumbs up/down.
+func (r *Repository) SetArticleRating(
+	ctx context.Context, userID, articleHashID string,
+	thumbsUp, thumbsDown bool, vector []float32,
+) error {
+	tx, err := r.db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("starting transaction: %w", err)
 	}
-	return r.queries.SetArticleThumbsDown(ctx, queries.SetArticleThumbsDownParams{
-		ArticleHashID: hashID,
+	defer func() { _ = tx.Rollback() }()
+
+	qtx := r.queries.WithTx(tx)
+
+	state, err := r.getCurrentInteractionState(ctx, qtx, userID, articleHashID)
+	if err != nil {
+		return err
+	}
+
+	if err := r.upsertInteraction(ctx, qtx, userID, articleHashID, thumbsUp, thumbsDown, vector, state); err != nil {
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("committing transaction: %w", err)
+	}
+
+	return nil
+}
+
+// getCurrentInteractionState fetches the current state of a user-article interaction.
+func (r *Repository) getCurrentInteractionState(
+	ctx context.Context, qtx *queries.Queries, userID, articleHashID string,
+) (interactionState, error) {
+	current, err := qtx.GetUserArticleInteraction(ctx, queries.GetUserArticleInteractionParams{
 		UserID:        userID,
-		ThumbsDown:    sql.NullBool{Bool: thumbsDown, Valid: true},
-		DateReviewed:  dateReviewed,
+		ArticleHashID: articleHashID,
 	})
+	if errors.Is(err, sql.ErrNoRows) {
+		return interactionState{}, nil
+	}
+	if err != nil {
+		return interactionState{}, fmt.Errorf("getting current interaction: %w", err)
+	}
+	return interactionState{
+		currentHaveRead: current.HaveRead,
+		currentDateRead: current.DateRead,
+	}, nil
+}
+
+// upsertInteraction stores the interaction record.
+func (r *Repository) upsertInteraction(
+	ctx context.Context, qtx *queries.Queries, userID, articleHashID string,
+	thumbsUp, thumbsDown bool, vector []float32, state interactionState,
+) error {
+	var vectorStr sql.NullString
+	if vector != nil {
+		vectorStr = sql.NullString{String: string(float32SliceToBytes(vector)), Valid: true}
+	}
+
+	var dateRated sql.NullTime
+	if thumbsUp || thumbsDown {
+		dateRated = sql.NullTime{Time: time.Now(), Valid: true}
+	}
+
+	if err := qtx.UpsertUserArticleInteraction(ctx, queries.UpsertUserArticleInteractionParams{
+		UserID:        userID,
+		ArticleHashID: articleHashID,
+		HaveRead:      state.currentHaveRead,
+		ThumbsUp:      thumbsUp,
+		ThumbsDown:    thumbsDown,
+		DateRead:      state.currentDateRead,
+		DateRated:     dateRated,
+		Vector:        vectorStr,
+	}); err != nil {
+		return fmt.Errorf("upserting interaction: %w", err)
+	}
+	return nil
 }
 
 func (r *Repository) ListThumbsUpArticleIDs(ctx context.Context, userID string) ([]string, error) {
@@ -98,6 +157,10 @@ func (r *Repository) ListDislikedArticleIDs(
 		Limit:  limit,
 		Offset: offset,
 	})
+}
+
+func (r *Repository) ListReadArticleIDs(ctx context.Context, userID string) ([]string, error) {
+	return r.queries.ListReadArticleIDs(ctx, userID)
 }
 
 func New(db *sql.DB) *Repository {
@@ -307,164 +370,6 @@ func buildArticlesOrder(options domain.ArticleListOptions) ([]string, error) {
 	return orderings, nil
 }
 
-// GetUserVector retrieves the stored vector sum and count for a user.
-func (r *Repository) GetUserVector(ctx context.Context, userID string) ([]float32, int, error) {
-	return getUserVectorWithQueries(ctx, r.queries, userID)
-}
-
-// AddArticleVectorToUser atomically checks if the article's vector has already been added,
-// and if not, adds it to the user's vector sum and marks it as added.
-// Returns true if the vector was added, false if it was already added.
-func (r *Repository) AddArticleVectorToUser(
-	ctx context.Context, userID, articleHashID string, vector []float32,
-) (bool, error) {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return false, fmt.Errorf("starting transaction: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	qtx := r.queries.WithTx(tx)
-
-	// Check if vector was already added
-	added, err := qtx.GetRatingVectorAdded(ctx, queries.GetRatingVectorAddedParams{
-		UserID:        userID,
-		ArticleHashID: articleHashID,
-	})
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return false, fmt.Errorf("checking vector added status: %w", err)
-	}
-	if added {
-		return false, nil // Already added
-	}
-
-	// Get current vector sum
-	currentSum, _, err := getUserVectorWithQueries(ctx, qtx, userID)
-	if err != nil {
-		return false, fmt.Errorf("getting current user vector: %w", err)
-	}
-
-	var newSum []float32
-	if currentSum == nil {
-		newSum = vector
-	} else {
-		newSum, err = addVectors(currentSum, vector)
-		if err != nil {
-			return false, fmt.Errorf("adding vectors: %w", err)
-		}
-	}
-
-	newSumBytes := float32SliceToBytes(newSum)
-	if err := qtx.UpsertUserVectorAdd(ctx, queries.UpsertUserVectorAddParams{
-		UserID:      userID,
-		VectorSum:   newSumBytes,
-		VectorSum_2: newSumBytes,
-	}); err != nil {
-		return false, fmt.Errorf("upserting user vector: %w", err)
-	}
-
-	// Mark vector as added
-	if err := qtx.SetRatingVectorAdded(ctx, queries.SetRatingVectorAddedParams{
-		VectorAdded:   true,
-		UserID:        userID,
-		ArticleHashID: articleHashID,
-	}); err != nil {
-		return false, fmt.Errorf("marking vector as added: %w", err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return false, fmt.Errorf("committing transaction: %w", err)
-	}
-
-	return true, nil
-}
-
-// SubtractArticleVectorFromUser atomically checks if the article's vector was previously added,
-// and if so, subtracts it from the user's vector sum and marks it as removed.
-// If vector is nil, only clears the added flag without modifying the sum.
-// Returns true if the flag was cleared, false if it wasn't set.
-func (r *Repository) SubtractArticleVectorFromUser(
-	ctx context.Context, userID, articleHashID string, vector []float32,
-) (bool, error) {
-	tx, err := r.db.BeginTx(ctx, nil)
-	if err != nil {
-		return false, fmt.Errorf("starting transaction: %w", err)
-	}
-	defer func() { _ = tx.Rollback() }()
-
-	qtx := r.queries.WithTx(tx)
-
-	// Check if vector was added
-	added, err := qtx.GetRatingVectorAdded(ctx, queries.GetRatingVectorAddedParams{
-		UserID:        userID,
-		ArticleHashID: articleHashID,
-	})
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return false, fmt.Errorf("checking vector added status: %w", err)
-	}
-	if !added {
-		return false, nil // Wasn't added
-	}
-
-	// Subtract vector from sum if provided
-	if vector != nil {
-		currentSum, _, err := getUserVectorWithQueries(ctx, qtx, userID)
-		if err != nil {
-			return false, fmt.Errorf("getting current user vector: %w", err)
-		}
-
-		if currentSum != nil {
-			newSum, err := subtractVectors(currentSum, vector)
-			if err != nil {
-				return false, fmt.Errorf("subtracting vectors: %w", err)
-			}
-			newSumBytes := float32SliceToBytes(newSum)
-
-			if err := qtx.UpdateUserVectorSubtract(ctx, queries.UpdateUserVectorSubtractParams{
-				VectorSum: newSumBytes,
-				UserID:    userID,
-			}); err != nil {
-				return false, fmt.Errorf("updating user vector: %w", err)
-			}
-		}
-	}
-
-	// Mark vector as removed
-	if err := qtx.SetRatingVectorAdded(ctx, queries.SetRatingVectorAddedParams{
-		VectorAdded:   false,
-		UserID:        userID,
-		ArticleHashID: articleHashID,
-	}); err != nil {
-		return false, fmt.Errorf("marking vector as removed: %w", err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return false, fmt.Errorf("committing transaction: %w", err)
-	}
-
-	return true, nil
-}
-
-// getUserVectorWithQueries retrieves the user vector sum and count using the provided queries object.
-func getUserVectorWithQueries(
-	ctx context.Context, q *queries.Queries, userID string,
-) ([]float32, int, error) {
-	row, err := q.GetUserVector(ctx, userID)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, 0, nil
-		}
-		return nil, 0, fmt.Errorf("fetching user vector: %w", err)
-	}
-
-	vector, err := bytesToFloat32Slice(row.VectorSum)
-	if err != nil {
-		return nil, 0, fmt.Errorf("decoding user vector: %w", err)
-	}
-
-	return vector, int(row.VectorCount), nil
-}
-
 // Helper functions for binary vector serialization
 
 func float32SliceToBytes(floats []float32) []byte {
@@ -486,28 +391,6 @@ func bytesToFloat32Slice(bytes []byte) ([]float32, error) {
 	return floats, nil
 }
 
-func addVectors(a, b []float32) ([]float32, error) {
-	if len(a) != len(b) {
-		return nil, fmt.Errorf("vector length mismatch: %d vs %d", len(a), len(b))
-	}
-	result := make([]float32, len(a))
-	for i := range a {
-		result[i] = a[i] + b[i]
-	}
-	return result, nil
-}
-
-func subtractVectors(a, b []float32) ([]float32, error) {
-	if len(a) != len(b) {
-		return nil, fmt.Errorf("vector length mismatch: %d vs %d", len(a), len(b))
-	}
-	result := make([]float32, len(a))
-	for i := range a {
-		result[i] = a[i] - b[i]
-	}
-	return result, nil
-}
-
 // paginationToLimitOffset converts page/pageSize to limit/offset with bounds checking.
 // Clamps values to int32 range to prevent overflow.
 func paginationToLimitOffset(page, pageSize int) (limit, offset int32) {
@@ -523,4 +406,245 @@ func paginationToLimitOffset(page, pageSize int) (limit, offset int32) {
 	offset = int32(off) //nolint:gosec // bounds checked above
 
 	return limit, offset
+}
+
+// ============================================
+// User Article Interaction Store Implementation
+// ============================================
+
+// GetUserArticleVectorsByType retrieves article vectors for a user filtered by rating type.
+func (r *Repository) GetUserArticleVectorsByType(
+	ctx context.Context, userID string, ratingType domain.UserRatingType,
+) ([]domain.UserArticleRating, error) {
+	switch ratingType {
+	case domain.RatingTypeThumbsUp:
+		rows, err := r.queries.GetUserArticleVectorsByThumbsUp(ctx, userID)
+		if err != nil {
+			return nil, fmt.Errorf("fetching thumbs up vectors: %w", err)
+		}
+		return convertVectorRows(rows, domain.RatingTypeThumbsUp)
+
+	case domain.RatingTypeThumbsDown:
+		rows, err := r.queries.GetUserArticleVectorsByThumbsDown(ctx, userID)
+		if err != nil {
+			return nil, fmt.Errorf("fetching thumbs down vectors: %w", err)
+		}
+		return convertVectorRowsDown(rows, domain.RatingTypeThumbsDown)
+
+	default:
+		return nil, fmt.Errorf("unknown rating type: %s", ratingType)
+	}
+}
+
+func convertVectorRows(
+	rows []queries.GetUserArticleVectorsByThumbsUpRow,
+	ratingType domain.UserRatingType,
+) ([]domain.UserArticleRating, error) {
+	result := make([]domain.UserArticleRating, 0, len(rows))
+	for _, row := range rows {
+		if !row.Vector.Valid {
+			continue // Skip rows without vectors
+		}
+		vector, err := bytesToFloat32Slice([]byte(row.Vector.String))
+		if err != nil {
+			return nil, fmt.Errorf("decoding vector for article %s: %w", row.ArticleHashID, err)
+		}
+		result = append(result, domain.UserArticleRating{
+			ArticleHashID: row.ArticleHashID,
+			Vector:        vector,
+			RatingType:    ratingType,
+			RatedAt:       row.DateRated.Time,
+		})
+	}
+	return result, nil
+}
+
+func convertVectorRowsDown(
+	rows []queries.GetUserArticleVectorsByThumbsDownRow,
+	ratingType domain.UserRatingType,
+) ([]domain.UserArticleRating, error) {
+	result := make([]domain.UserArticleRating, 0, len(rows))
+	for _, row := range rows {
+		if !row.Vector.Valid {
+			continue // Skip rows without vectors
+		}
+		vector, err := bytesToFloat32Slice([]byte(row.Vector.String))
+		if err != nil {
+			return nil, fmt.Errorf("decoding vector for article %s: %w", row.ArticleHashID, err)
+		}
+		result = append(result, domain.UserArticleRating{
+			ArticleHashID: row.ArticleHashID,
+			Vector:        vector,
+			RatingType:    ratingType,
+			RatedAt:       row.DateRated.Time,
+		})
+	}
+	return result, nil
+}
+
+// CountUserArticleVectorsByType returns the count of vectors for a user by rating type.
+func (r *Repository) CountUserArticleVectorsByType(
+	ctx context.Context, userID string, ratingType domain.UserRatingType,
+) (int64, error) {
+	switch ratingType {
+	case domain.RatingTypeThumbsUp:
+		return r.queries.CountUserArticleVectorsByThumbsUp(ctx, userID)
+	case domain.RatingTypeThumbsDown:
+		return r.queries.CountUserArticleVectorsByThumbsDown(ctx, userID)
+	default:
+		return 0, fmt.Errorf("unknown rating type: %s", ratingType)
+	}
+}
+
+// ============================================
+// User Interest Cluster Store Implementation
+// ============================================
+
+// UpsertUserInterestCluster stores or updates a user's interest cluster.
+func (r *Repository) UpsertUserInterestCluster(
+	ctx context.Context, userID string, clusterID int, centroidVector []float32, articleCount int,
+) error {
+	vectorBytes := float32SliceToBytes(centroidVector)
+	return r.queries.UpsertUserInterestCluster(ctx, queries.UpsertUserInterestClusterParams{
+		UserID:         userID,
+		ClusterID:      int32(clusterID), //nolint:gosec // cluster IDs are small
+		CentroidVector: vectorBytes,
+		ArticleCount:   int32(articleCount), //nolint:gosec // article counts are bounded
+	})
+}
+
+// GetUserInterestClusters retrieves all interest clusters for a user.
+func (r *Repository) GetUserInterestClusters(
+	ctx context.Context, userID string,
+) ([]datasources.UserInterestCluster, error) {
+	rows, err := r.queries.GetUserInterestClusters(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("fetching user interest clusters: %w", err)
+	}
+
+	result := make([]datasources.UserInterestCluster, 0, len(rows))
+	for _, row := range rows {
+		vector, err := bytesToFloat32Slice(row.CentroidVector)
+		if err != nil {
+			return nil, fmt.Errorf("decoding centroid vector for cluster %d: %w", row.ClusterID, err)
+		}
+		result = append(result, datasources.UserInterestCluster{
+			ClusterID:      int(row.ClusterID),
+			CentroidVector: vector,
+			ArticleCount:   int(row.ArticleCount),
+			UpdatedAt:      row.UpdatedAt,
+		})
+	}
+
+	return result, nil
+}
+
+// DeleteUserInterestClusters removes all interest clusters for a user.
+func (r *Repository) DeleteUserInterestClusters(ctx context.Context, userID string) error {
+	return r.queries.DeleteUserInterestClusters(ctx, userID)
+}
+
+// ============================================
+// Precomputed Recommendation Store Implementation
+// ============================================
+
+// UpsertPrecomputedRecommendation stores or updates a precomputed recommendation.
+func (r *Repository) UpsertPrecomputedRecommendation(
+	ctx context.Context,
+	userID, articleHashID string,
+	score float64,
+	source string,
+	position int,
+	generatedAt time.Time,
+) error {
+	return r.queries.UpsertPrecomputedRecommendation(ctx, queries.UpsertPrecomputedRecommendationParams{
+		UserID:        userID,
+		ArticleHashID: articleHashID,
+		Score:         score,
+		Source:        source,
+		Position:      int32(position), //nolint:gosec // positions are small
+		GeneratedAt:   generatedAt,
+	})
+}
+
+// DeleteUserPrecomputedRecommendations removes all precomputed recommendations for a user.
+func (r *Repository) DeleteUserPrecomputedRecommendations(ctx context.Context, userID string) error {
+	return r.queries.DeleteUserPrecomputedRecommendations(ctx, userID)
+}
+
+// GetPrecomputedRecommendations retrieves precomputed recommendations for a user, ordered by position.
+func (r *Repository) GetPrecomputedRecommendations(
+	ctx context.Context, userID string, limit int,
+) ([]datasources.PrecomputedRecommendation, error) {
+	rows, err := r.queries.GetPrecomputedRecommendations(ctx, queries.GetPrecomputedRecommendationsParams{
+		UserID: userID,
+		Limit:  int32(limit), //nolint:gosec // limits are small
+	})
+	if err != nil {
+		return nil, fmt.Errorf("fetching precomputed recommendations: %w", err)
+	}
+
+	result := make([]datasources.PrecomputedRecommendation, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, datasources.PrecomputedRecommendation{
+			ArticleHashID: row.ArticleHashID,
+			Score:         row.Score,
+			Source:        row.Source,
+			Position:      int(row.Position),
+			GeneratedAt:   row.GeneratedAt,
+		})
+	}
+
+	return result, nil
+}
+
+// GetPrecomputedRecommendationAge returns when recommendations were last generated for a user.
+// Returns zero time if no recommendations exist.
+func (r *Repository) GetPrecomputedRecommendationAge(ctx context.Context, userID string) (time.Time, error) {
+	generatedAt, err := r.queries.GetPrecomputedRecommendationAge(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return time.Time{}, nil
+		}
+		return time.Time{}, fmt.Errorf("fetching recommendation age: %w", err)
+	}
+	return generatedAt, nil
+}
+
+// ============================================
+// User Recommendation State Store Implementation
+// ============================================
+
+// GetUserRecommendationState retrieves the recommendation state for a user.
+func (r *Repository) GetUserRecommendationState(
+	ctx context.Context, userID string,
+) (datasources.UserRecommendationState, error) {
+	row, err := r.queries.GetUserRecommendationState(ctx, userID)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return datasources.UserRecommendationState{}, nil
+		}
+		return datasources.UserRecommendationState{}, fmt.Errorf("fetching recommendation state: %w", err)
+	}
+
+	return datasources.UserRecommendationState{
+		LastGeneratedAt:   row.LastGeneratedAt.Time,
+		LastRatingAt:      row.LastRatingAt.Time,
+		NeedsRegeneration: row.NeedsRegeneration,
+	}, nil
+}
+
+// MarkUserNeedsRegeneration marks a user as needing recommendation regeneration.
+func (r *Repository) MarkUserNeedsRegeneration(ctx context.Context, userID string) error {
+	return r.queries.MarkUserNeedsRegeneration(ctx, userID)
+}
+
+// MarkUserRegenerated marks a user's recommendations as regenerated.
+func (r *Repository) MarkUserRegenerated(ctx context.Context, userID string) error {
+	return r.queries.MarkUserRegenerated(ctx, userID)
+}
+
+// ListUsersNeedingRegeneration returns user IDs that need recommendation regeneration.
+func (r *Repository) ListUsersNeedingRegeneration(ctx context.Context) ([]string, error) {
+	return r.queries.ListUsersNeedingRegeneration(ctx)
 }

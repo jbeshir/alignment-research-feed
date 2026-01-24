@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/jbeshir/alignment-research-feed/internal/command"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources/mysql"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources/pinecone"
@@ -32,6 +33,22 @@ func Setup(ctx context.Context) ([]Component, error) {
 		return nil, fmt.Errorf("setting up auth middleware: %w", err)
 	}
 
+	generateRecommendationsCmd := command.NewGenerateRecommendations(
+		similarity,
+		dataset,
+		dataset,
+		dataset,
+		DefaultGenerateRecommendationsConfig(),
+	)
+
+	recommendArticlesCmd := command.NewRecommendArticles(
+		generateRecommendationsCmd,
+		dataset,
+		dataset,
+		dataset,
+		DefaultRecommendArticlesConfig(),
+	)
+
 	httpRouter, err := router.MakeRouter(
 		dataset,
 		similarity,
@@ -40,6 +57,7 @@ func Setup(ctx context.Context) ([]Component, error) {
 		MustGetEnvAsString(ctx, "RSS_FEED_AUTHOR_EMAIL"),
 		MustGetEnvAsDuration(ctx, "RSS_FEED_LATEST_CACHE_MAX_AGE"),
 		authMiddleware,
+		recommendArticlesCmd,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create HTTP router: %w", err)

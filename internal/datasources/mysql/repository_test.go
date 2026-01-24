@@ -58,11 +58,11 @@ func setupTestDB(t *testing.T) *sql.DB {
 	})
 	require.NoError(t, err)
 
-	// Set up some test ratings
+	// Set up some test ratings using SetArticleRead
 	err = q.SetArticleRead(context.Background(), queries.SetArticleReadParams{
 		ArticleHashID: testArticleHash1,
 		UserID:        "test-user-123",
-		HaveRead:      sql.NullBool{Bool: true, Valid: true},
+		HaveRead:      true,
 	})
 	require.NoError(t, err)
 
@@ -74,7 +74,7 @@ func teardownTestDB(t *testing.T, db *sql.DB) {
 		t.Skip("skipping MySQL integration tests in short mode")
 	}
 
-	_, err := db.ExecContext(context.Background(), "DELETE FROM article_ratings")
+	_, err := db.ExecContext(context.Background(), "DELETE FROM user_article_interactions")
 	require.NoError(t, err)
 
 	_, err = db.ExecContext(context.Background(), "DELETE FROM articles")
@@ -355,7 +355,7 @@ func TestRepository_TotalMatchingArticles(t *testing.T) {
 	}
 }
 
-func TestRepository_SetArticleRatings(t *testing.T) {
+func TestRepository_SetArticleRating(t *testing.T) {
 	db := setupTestDB(t)
 	defer teardownTestDB(t, db)
 
@@ -376,8 +376,9 @@ func TestRepository_SetArticleRatings(t *testing.T) {
 	require.NotNil(t, articles[0].HaveRead)
 	assert.True(t, *articles[0].HaveRead)
 
-	// Test SetArticleThumbsUp
-	err = sut.SetArticleThumbsUp(ctx, articleID, userID, true)
+	// Test SetArticleRating with thumbs up
+	testVector := []float32{0.1, 0.2, 0.3}
+	err = sut.SetArticleRating(ctx, userID, articleID, true, false, testVector)
 	require.NoError(t, err)
 
 	articles, err = sut.FetchArticlesByID(userCtx, []string{articleID})
@@ -385,23 +386,27 @@ func TestRepository_SetArticleRatings(t *testing.T) {
 	require.NotNil(t, articles[0].ThumbsUp)
 	assert.True(t, *articles[0].ThumbsUp)
 
-	// Test SetArticleThumbsDown
-	err = sut.SetArticleThumbsDown(ctx, articleID, userID, true)
+	// Test SetArticleRating with thumbs down
+	err = sut.SetArticleRating(ctx, userID, articleID, false, true, testVector)
 	require.NoError(t, err)
 
 	articles, err = sut.FetchArticlesByID(userCtx, []string{articleID})
 	require.NoError(t, err)
 	require.NotNil(t, articles[0].ThumbsDown)
 	assert.True(t, *articles[0].ThumbsDown)
+	require.NotNil(t, articles[0].ThumbsUp)
+	assert.False(t, *articles[0].ThumbsUp)
 
-	// Test toggle off
-	err = sut.SetArticleThumbsUp(ctx, articleID, userID, false)
+	// Test clearing rating
+	err = sut.SetArticleRating(ctx, userID, articleID, false, false, testVector)
 	require.NoError(t, err)
 
 	articles, err = sut.FetchArticlesByID(userCtx, []string{articleID})
 	require.NoError(t, err)
 	require.NotNil(t, articles[0].ThumbsUp)
 	assert.False(t, *articles[0].ThumbsUp)
+	require.NotNil(t, articles[0].ThumbsDown)
+	assert.False(t, *articles[0].ThumbsDown)
 }
 
 func TestRepository_ListThumbsUpArticleIDs(t *testing.T) {
@@ -418,7 +423,7 @@ func TestRepository_ListThumbsUpArticleIDs(t *testing.T) {
 	assert.Empty(t, ids)
 
 	// Add thumbs up to one article
-	err = sut.SetArticleThumbsUp(ctx, testArticleHash1, userID, true)
+	err = sut.SetArticleRating(ctx, userID, testArticleHash1, true, false, nil)
 	require.NoError(t, err)
 
 	ids, err = sut.ListThumbsUpArticleIDs(ctx, userID)
@@ -426,7 +431,7 @@ func TestRepository_ListThumbsUpArticleIDs(t *testing.T) {
 	assert.Equal(t, []string{testArticleHash1}, ids)
 
 	// Add thumbs up to another article
-	err = sut.SetArticleThumbsUp(ctx, testArticleHash2, userID, true)
+	err = sut.SetArticleRating(ctx, userID, testArticleHash2, true, false, nil)
 	require.NoError(t, err)
 
 	ids, err = sut.ListThumbsUpArticleIDs(ctx, userID)
@@ -434,7 +439,7 @@ func TestRepository_ListThumbsUpArticleIDs(t *testing.T) {
 	assert.Len(t, ids, 2)
 
 	// Remove thumbs up
-	err = sut.SetArticleThumbsUp(ctx, testArticleHash1, userID, false)
+	err = sut.SetArticleRating(ctx, userID, testArticleHash1, false, false, nil)
 	require.NoError(t, err)
 
 	ids, err = sut.ListThumbsUpArticleIDs(ctx, userID)
@@ -442,60 +447,7 @@ func TestRepository_ListThumbsUpArticleIDs(t *testing.T) {
 	assert.Equal(t, []string{testArticleHash2}, ids)
 }
 
-func TestRepository_UserVectorOperations(t *testing.T) {
-	db := setupTestDB(t)
-	defer teardownTestDB(t, db)
-
-	sut := New(db)
-	ctx := context.Background()
-	userID := "vector-test-user"
-	articleID := testArticleHash1
-
-	// Initially no vector
-	sum, count, err := sut.GetUserVector(ctx, userID)
-	require.NoError(t, err)
-	assert.Nil(t, sum)
-	assert.Equal(t, 0, count)
-
-	// First need a rating record for the article
-	err = sut.SetArticleThumbsUp(ctx, articleID, userID, true)
-	require.NoError(t, err)
-
-	// Add vector
-	testVector := []float32{0.1, 0.2, 0.3}
-	added, err := sut.AddArticleVectorToUser(ctx, userID, articleID, testVector)
-	require.NoError(t, err)
-	assert.True(t, added)
-
-	// Verify vector was added
-	sum, count, err = sut.GetUserVector(ctx, userID)
-	require.NoError(t, err)
-	assert.Equal(t, testVector, sum)
-	assert.Equal(t, 1, count)
-
-	// Adding same vector again should return false
-	added, err = sut.AddArticleVectorToUser(ctx, userID, articleID, testVector)
-	require.NoError(t, err)
-	assert.False(t, added)
-
-	// Subtract vector
-	removed, err := sut.SubtractArticleVectorFromUser(ctx, userID, articleID, testVector)
-	require.NoError(t, err)
-	assert.True(t, removed)
-
-	// Verify vector was subtracted
-	sum, count, err = sut.GetUserVector(ctx, userID)
-	require.NoError(t, err)
-	assert.Equal(t, []float32{0, 0, 0}, sum)
-	assert.Equal(t, 0, count)
-
-	// Removing again should return false
-	removed, err = sut.SubtractArticleVectorFromUser(ctx, userID, articleID, testVector)
-	require.NoError(t, err)
-	assert.False(t, removed)
-}
-
-func TestRepository_UserVectorMultipleArticles(t *testing.T) {
+func TestRepository_SetArticleRatingMultipleArticles(t *testing.T) {
 	db := setupTestDB(t)
 	defer teardownTestDB(t, db)
 
@@ -505,40 +457,24 @@ func TestRepository_UserVectorMultipleArticles(t *testing.T) {
 	articleID1 := testArticleHash1
 	articleID2 := testArticleHash2
 
-	// Set up ratings for both articles
-	err := sut.SetArticleThumbsUp(ctx, articleID1, userID, true)
-	require.NoError(t, err)
-	err = sut.SetArticleThumbsUp(ctx, articleID2, userID, true)
-	require.NoError(t, err)
-
-	// Add vectors for both articles
+	// Add vectors for both articles via SetArticleRating
 	vector1 := []float32{1.0, 2.0, 3.0}
 	vector2 := []float32{0.5, 1.0, 1.5}
 
-	added, err := sut.AddArticleVectorToUser(ctx, userID, articleID1, vector1)
+	err := sut.SetArticleRating(ctx, userID, articleID1, true, false, vector1)
 	require.NoError(t, err)
-	assert.True(t, added)
 
-	added, err = sut.AddArticleVectorToUser(ctx, userID, articleID2, vector2)
+	err = sut.SetArticleRating(ctx, userID, articleID2, true, false, vector2)
 	require.NoError(t, err)
-	assert.True(t, added)
 
-	// Verify combined vector
-	sum, count, err := sut.GetUserVector(ctx, userID)
+	// Change one to thumbs down
+	err = sut.SetArticleRating(ctx, userID, articleID1, false, true, vector1)
 	require.NoError(t, err)
-	assert.Equal(t, []float32{1.5, 3.0, 4.5}, sum)
-	assert.Equal(t, 2, count)
 
-	// Remove one vector
-	removed, err := sut.SubtractArticleVectorFromUser(ctx, userID, articleID1, vector1)
+	// Verify ratings are correct
+	ids, err := sut.ListThumbsUpArticleIDs(ctx, userID)
 	require.NoError(t, err)
-	assert.True(t, removed)
-
-	// Verify remaining vector
-	sum, count, err = sut.GetUserVector(ctx, userID)
-	require.NoError(t, err)
-	assert.Equal(t, []float32{0.5, 1.0, 1.5}, sum)
-	assert.Equal(t, 1, count)
+	assert.Equal(t, []string{articleID2}, ids)
 }
 
 func TestRepository_FetchArticlesByID(t *testing.T) {
