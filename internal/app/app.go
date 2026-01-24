@@ -46,6 +46,8 @@ func Setup(ctx context.Context) ([]Component, error) {
 		dataset,
 		dataset,
 		dataset,
+		dataset,
+		dataset,
 		DefaultRecommendArticlesConfig(),
 	)
 

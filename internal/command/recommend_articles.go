@@ -29,9 +29,12 @@ type RecommendArticlesConfig struct {
 // RecommendArticles serves personalized article recommendations.
 // It uses precomputed recommendations when available and fresh,
 // falling back to on-demand generation via GenerateRecommendations.
+// On-demand results are stored for subsequent requests.
 type RecommendArticles struct {
 	GenerateCommand    *GenerateRecommendations
 	PrecomputedReader  datasources.PrecomputedRecommendationReader
+	PrecomputedWriter  datasources.PrecomputedRecommendationWriter
+	RegenerationStatus datasources.UserRegeneratedMarker
 	ReadArticlesLister datasources.ReadArticleIDsLister
 	ArticleFetcher     datasources.ArticleFetcher
 	Config             RecommendArticlesConfig
@@ -41,6 +44,8 @@ type RecommendArticles struct {
 func NewRecommendArticles(
 	generateCommand *GenerateRecommendations,
 	precomputedReader datasources.PrecomputedRecommendationReader,
+	precomputedWriter datasources.PrecomputedRecommendationWriter,
+	regenerationStatus datasources.UserRegeneratedMarker,
 	readArticlesLister datasources.ReadArticleIDsLister,
 	articleFetcher datasources.ArticleFetcher,
 	config RecommendArticlesConfig,
@@ -48,6 +53,8 @@ func NewRecommendArticles(
 	return &RecommendArticles{
 		GenerateCommand:    generateCommand,
 		PrecomputedReader:  precomputedReader,
+		PrecomputedWriter:  precomputedWriter,
+		RegenerationStatus: regenerationStatus,
 		ReadArticlesLister: readArticlesLister,
 		ArticleFetcher:     articleFetcher,
 		Config:             config,
@@ -56,7 +63,8 @@ func NewRecommendArticles(
 
 // Execute returns recommendations for a user.
 // It first tries to use precomputed recommendations if available and fresh,
-// then falls back to on-demand generation. Finally, it fetches full article data.
+// then falls back to on-demand generation and stores the results.
+// Finally, it fetches full article data.
 func (c *RecommendArticles) Execute(ctx context.Context, req RecommendArticlesRequest) ([]domain.Article, error) {
 	logger := domain.LoggerFromContext(ctx)
 
@@ -72,6 +80,11 @@ func (c *RecommendArticles) Execute(ctx context.Context, req RecommendArticlesRe
 		scored, err = c.GenerateCommand.Execute(ctx, GenerateRecommendationsRequest(req))
 		if err != nil {
 			return nil, err
+		}
+
+		// Store generated recommendations for next request
+		if len(scored) > 0 {
+			c.storeGeneratedRecommendations(ctx, req.UserID, scored)
 		}
 	}
 
@@ -161,4 +174,47 @@ func (c *RecommendArticles) getReadArticleIDs(ctx context.Context, userID string
 		result[id] = struct{}{}
 	}
 	return result
+}
+
+// storeGeneratedRecommendations stores on-demand generated recommendations
+// so they're available from the precomputed store on subsequent requests.
+// Errors are logged but not returned since this is best-effort caching.
+func (c *RecommendArticles) storeGeneratedRecommendations(
+	ctx context.Context, userID string, scored []ScoredArticle,
+) {
+	logger := domain.LoggerFromContext(ctx)
+
+	// Delete existing precomputed recommendations for this user
+	if err := c.PrecomputedWriter.DeleteUserPrecomputedRecommendations(ctx, userID); err != nil {
+		logger.WarnContext(ctx, "failed to delete existing precomputed recommendations",
+			"user_id", userID, "error", err)
+		return
+	}
+
+	// Store the new recommendations
+	generatedAt := time.Now()
+	for position, article := range scored {
+		if err := c.PrecomputedWriter.UpsertPrecomputedRecommendation(
+			ctx,
+			userID,
+			article.HashID,
+			article.Score,
+			article.Source,
+			position,
+			generatedAt,
+		); err != nil {
+			logger.WarnContext(ctx, "failed to store precomputed recommendation",
+				"user_id", userID, "position", position, "error", err)
+			return
+		}
+	}
+
+	// Mark user as regenerated so background job doesn't redo work
+	if err := c.RegenerationStatus.MarkUserRegenerated(ctx, userID); err != nil {
+		logger.WarnContext(ctx, "failed to mark user as regenerated",
+			"user_id", userID, "error", err)
+	}
+
+	logger.DebugContext(ctx, "stored on-demand recommendations",
+		"user_id", userID, "count", len(scored))
 }
