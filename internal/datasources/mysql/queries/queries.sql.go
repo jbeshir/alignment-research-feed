@@ -15,7 +15,7 @@ import (
 const countUserArticleVectorsByThumbsDown = `-- name: CountUserArticleVectorsByThumbsDown :one
 SELECT COUNT(*) as count
 FROM user_article_interactions
-WHERE user_id = ? AND thumbs_down = TRUE AND vector IS NOT NULL
+WHERE user_id = ? AND thumbs_down = TRUE AND ` + "`" + `vector` + "`" + ` IS NOT NULL
 `
 
 func (q *Queries) CountUserArticleVectorsByThumbsDown(ctx context.Context, userID string) (int64, error) {
@@ -28,7 +28,7 @@ func (q *Queries) CountUserArticleVectorsByThumbsDown(ctx context.Context, userI
 const countUserArticleVectorsByThumbsUp = `-- name: CountUserArticleVectorsByThumbsUp :one
 SELECT COUNT(*) as count
 FROM user_article_interactions
-WHERE user_id = ? AND thumbs_up = TRUE AND vector IS NOT NULL
+WHERE user_id = ? AND thumbs_up = TRUE AND ` + "`" + `vector` + "`" + ` IS NOT NULL
 `
 
 func (q *Queries) CountUserArticleVectorsByThumbsUp(ctx context.Context, userID string) (int64, error) {
@@ -208,7 +208,7 @@ func (q *Queries) GetPrecomputedRecommendations(ctx context.Context, arg GetPrec
 const getUserArticleInteraction = `-- name: GetUserArticleInteraction :one
 
 SELECT user_id, article_hash_id, have_read, thumbs_up, thumbs_down,
-       date_read, date_rated, vector
+       date_read, date_rated, ` + "`" + `vector` + "`" + `
 FROM user_article_interactions
 WHERE user_id = ? AND article_hash_id = ?
 `
@@ -238,9 +238,9 @@ func (q *Queries) GetUserArticleInteraction(ctx context.Context, arg GetUserArti
 }
 
 const getUserArticleVectorsByThumbsDown = `-- name: GetUserArticleVectorsByThumbsDown :many
-SELECT article_hash_id, vector, date_rated
+SELECT article_hash_id, ` + "`" + `vector` + "`" + `, date_rated
 FROM user_article_interactions
-WHERE user_id = ? AND thumbs_down = TRUE AND vector IS NOT NULL
+WHERE user_id = ? AND thumbs_down = TRUE AND ` + "`" + `vector` + "`" + ` IS NOT NULL
 ORDER BY date_rated DESC
 `
 
@@ -274,9 +274,9 @@ func (q *Queries) GetUserArticleVectorsByThumbsDown(ctx context.Context, userID 
 }
 
 const getUserArticleVectorsByThumbsUp = `-- name: GetUserArticleVectorsByThumbsUp :many
-SELECT article_hash_id, vector, date_rated
+SELECT article_hash_id, ` + "`" + `vector` + "`" + `, date_rated
 FROM user_article_interactions
-WHERE user_id = ? AND thumbs_up = TRUE AND vector IS NOT NULL
+WHERE user_id = ? AND thumbs_up = TRUE AND ` + "`" + `vector` + "`" + ` IS NOT NULL
 ORDER BY date_rated DESC
 `
 
@@ -709,7 +709,7 @@ func (q *Queries) UpsertPrecomputedRecommendation(ctx context.Context, arg Upser
 const upsertUserArticleInteraction = `-- name: UpsertUserArticleInteraction :exec
 INSERT INTO user_article_interactions (
     user_id, article_hash_id, have_read, thumbs_up, thumbs_down,
-    date_read, date_rated, vector
+    date_read, date_rated, ` + "`" + `vector` + "`" + `
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
     have_read = VALUES(have_read),
@@ -717,7 +717,7 @@ ON DUPLICATE KEY UPDATE
     thumbs_down = VALUES(thumbs_down),
     date_read = VALUES(date_read),
     date_rated = VALUES(date_rated),
-    vector = VALUES(vector)
+    ` + "`" + `vector` + "`" + ` = VALUES(` + "`" + `vector` + "`" + `)
 `
 
 type UpsertUserArticleInteractionParams struct {

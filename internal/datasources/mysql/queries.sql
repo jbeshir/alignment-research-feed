@@ -77,14 +77,14 @@ WHERE user_id = ? AND have_read = TRUE;
 
 -- name: GetUserArticleInteraction :one
 SELECT user_id, article_hash_id, have_read, thumbs_up, thumbs_down,
-       date_read, date_rated, vector
+       date_read, date_rated, `vector`
 FROM user_article_interactions
 WHERE user_id = ? AND article_hash_id = ?;
 
 -- name: UpsertUserArticleInteraction :exec
 INSERT INTO user_article_interactions (
     user_id, article_hash_id, have_read, thumbs_up, thumbs_down,
-    date_read, date_rated, vector
+    date_read, date_rated, `vector`
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
     have_read = VALUES(have_read),
@@ -92,29 +92,29 @@ ON DUPLICATE KEY UPDATE
     thumbs_down = VALUES(thumbs_down),
     date_read = VALUES(date_read),
     date_rated = VALUES(date_rated),
-    vector = VALUES(vector);
+    `vector` = VALUES(`vector`);
 
 -- name: GetUserArticleVectorsByThumbsUp :many
-SELECT article_hash_id, vector, date_rated
+SELECT article_hash_id, `vector`, date_rated
 FROM user_article_interactions
-WHERE user_id = ? AND thumbs_up = TRUE AND vector IS NOT NULL
+WHERE user_id = ? AND thumbs_up = TRUE AND `vector` IS NOT NULL
 ORDER BY date_rated DESC;
 
 -- name: GetUserArticleVectorsByThumbsDown :many
-SELECT article_hash_id, vector, date_rated
+SELECT article_hash_id, `vector`, date_rated
 FROM user_article_interactions
-WHERE user_id = ? AND thumbs_down = TRUE AND vector IS NOT NULL
+WHERE user_id = ? AND thumbs_down = TRUE AND `vector` IS NOT NULL
 ORDER BY date_rated DESC;
 
 -- name: CountUserArticleVectorsByThumbsUp :one
 SELECT COUNT(*) as count
 FROM user_article_interactions
-WHERE user_id = ? AND thumbs_up = TRUE AND vector IS NOT NULL;
+WHERE user_id = ? AND thumbs_up = TRUE AND `vector` IS NOT NULL;
 
 -- name: CountUserArticleVectorsByThumbsDown :one
 SELECT COUNT(*) as count
 FROM user_article_interactions
-WHERE user_id = ? AND thumbs_down = TRUE AND vector IS NOT NULL;
+WHERE user_id = ? AND thumbs_down = TRUE AND `vector` IS NOT NULL;
 
 -- ============================================
 -- User Interest Clusters
