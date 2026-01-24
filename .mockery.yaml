@@ -5,15 +5,8 @@ outpkg: "mocks"
 filename: "mock_{{.InterfaceName | snakecase}}.go"
 packages:
   github.com/jbeshir/alignment-research-feed/internal/datasources:
-    interfaces:
-      ArticleFetcher:
-      ArticleReadSetter:
-      ArticleThumbsUpSetter:
-      ArticleThumbsDownSetter:
-      LatestArticleLister:
-      ThumbsUpArticleLister:
-      UserVectorGetter:
-      UserVectorSyncer:
-      SimilarArticleLister:
-      ArticleVectorFetcher:
-      SimilarArticlesByVectorLister:
+    config:
+      all: true
+  github.com/jbeshir/alignment-research-feed/internal/command:
+    config:
+      all: true

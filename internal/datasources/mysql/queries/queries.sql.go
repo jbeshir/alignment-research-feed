@@ -12,6 +12,52 @@ import (
 	"time"
 )
 
+const countUserArticleVectorsByThumbsDown = `-- name: CountUserArticleVectorsByThumbsDown :one
+SELECT COUNT(*) as count
+FROM user_article_interactions
+WHERE user_id = ? AND thumbs_down = TRUE AND ` + "`" + `vector` + "`" + ` IS NOT NULL
+`
+
+func (q *Queries) CountUserArticleVectorsByThumbsDown(ctx context.Context, userID string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countUserArticleVectorsByThumbsDown, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const countUserArticleVectorsByThumbsUp = `-- name: CountUserArticleVectorsByThumbsUp :one
+SELECT COUNT(*) as count
+FROM user_article_interactions
+WHERE user_id = ? AND thumbs_up = TRUE AND ` + "`" + `vector` + "`" + ` IS NOT NULL
+`
+
+func (q *Queries) CountUserArticleVectorsByThumbsUp(ctx context.Context, userID string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countUserArticleVectorsByThumbsUp, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const deleteUserInterestClusters = `-- name: DeleteUserInterestClusters :exec
+DELETE FROM user_interest_clusters
+WHERE user_id = ?
+`
+
+func (q *Queries) DeleteUserInterestClusters(ctx context.Context, userID string) error {
+	_, err := q.db.ExecContext(ctx, deleteUserInterestClusters, userID)
+	return err
+}
+
+const deleteUserPrecomputedRecommendations = `-- name: DeleteUserPrecomputedRecommendations :exec
+DELETE FROM user_precomputed_recommendations
+WHERE user_id = ?
+`
+
+func (q *Queries) DeleteUserPrecomputedRecommendations(ctx context.Context, userID string) error {
+	_, err := q.db.ExecContext(ctx, deleteUserPrecomputedRecommendations, userID)
+	return err
+}
+
 const fetchArticlesByID = `-- name: FetchArticlesByID :many
 SELECT
     hash_id,
@@ -25,9 +71,9 @@ SELECT
     thumbs_up,
     thumbs_down
 FROM articles
-LEFT JOIN article_ratings
-    ON articles.hash_id = article_ratings.article_hash_id
-        AND article_ratings.user_id = ?
+LEFT JOIN user_article_interactions
+    ON articles.hash_id = user_article_interactions.article_hash_id
+        AND user_article_interactions.user_id = ?
 WHERE hash_id IN (/*SLICE:hash_ids*/?)
 `
 
@@ -94,35 +140,237 @@ func (q *Queries) FetchArticlesByID(ctx context.Context, arg FetchArticlesByIDPa
 	return items, nil
 }
 
-const getRatingVectorAdded = `-- name: GetRatingVectorAdded :one
-SELECT vector_added FROM article_ratings WHERE user_id = ? AND article_hash_id = ?
+const getPrecomputedRecommendationAge = `-- name: GetPrecomputedRecommendationAge :one
+SELECT generated_at
+FROM user_precomputed_recommendations
+WHERE user_id = ?
+ORDER BY generated_at DESC
+LIMIT 1
 `
 
-type GetRatingVectorAddedParams struct {
+func (q *Queries) GetPrecomputedRecommendationAge(ctx context.Context, userID string) (time.Time, error) {
+	row := q.db.QueryRowContext(ctx, getPrecomputedRecommendationAge, userID)
+	var generated_at time.Time
+	err := row.Scan(&generated_at)
+	return generated_at, err
+}
+
+const getPrecomputedRecommendations = `-- name: GetPrecomputedRecommendations :many
+SELECT article_hash_id, score, source, position, generated_at
+FROM user_precomputed_recommendations
+WHERE user_id = ?
+ORDER BY position ASC
+LIMIT ?
+`
+
+type GetPrecomputedRecommendationsParams struct {
+	UserID string
+	Limit  int32
+}
+
+type GetPrecomputedRecommendationsRow struct {
+	ArticleHashID string
+	Score         float64
+	Source        string
+	Position      int32
+	GeneratedAt   time.Time
+}
+
+func (q *Queries) GetPrecomputedRecommendations(ctx context.Context, arg GetPrecomputedRecommendationsParams) ([]GetPrecomputedRecommendationsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPrecomputedRecommendations, arg.UserID, arg.Limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetPrecomputedRecommendationsRow
+	for rows.Next() {
+		var i GetPrecomputedRecommendationsRow
+		if err := rows.Scan(
+			&i.ArticleHashID,
+			&i.Score,
+			&i.Source,
+			&i.Position,
+			&i.GeneratedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUserArticleInteraction = `-- name: GetUserArticleInteraction :one
+
+SELECT user_id, article_hash_id, have_read, thumbs_up, thumbs_down,
+       date_read, date_rated, ` + "`" + `vector` + "`" + `
+FROM user_article_interactions
+WHERE user_id = ? AND article_hash_id = ?
+`
+
+type GetUserArticleInteractionParams struct {
 	UserID        string
 	ArticleHashID string
 }
 
-func (q *Queries) GetRatingVectorAdded(ctx context.Context, arg GetRatingVectorAddedParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, getRatingVectorAdded, arg.UserID, arg.ArticleHashID)
-	var vector_added bool
-	err := row.Scan(&vector_added)
-	return vector_added, err
+// ============================================
+// User Article Interactions (unified table)
+// ============================================
+func (q *Queries) GetUserArticleInteraction(ctx context.Context, arg GetUserArticleInteractionParams) (UserArticleInteraction, error) {
+	row := q.db.QueryRowContext(ctx, getUserArticleInteraction, arg.UserID, arg.ArticleHashID)
+	var i UserArticleInteraction
+	err := row.Scan(
+		&i.UserID,
+		&i.ArticleHashID,
+		&i.HaveRead,
+		&i.ThumbsUp,
+		&i.ThumbsDown,
+		&i.DateRead,
+		&i.DateRated,
+		&i.Vector,
+	)
+	return i, err
 }
 
-const getUserVector = `-- name: GetUserVector :one
-SELECT vector_sum, vector_count FROM user_recommendation_vectors WHERE user_id = ?
+const getUserArticleVectorsByThumbsDown = `-- name: GetUserArticleVectorsByThumbsDown :many
+SELECT article_hash_id, ` + "`" + `vector` + "`" + `, date_rated
+FROM user_article_interactions
+WHERE user_id = ? AND thumbs_down = TRUE AND ` + "`" + `vector` + "`" + ` IS NOT NULL
+ORDER BY date_rated DESC
 `
 
-type GetUserVectorRow struct {
-	VectorSum   []byte
-	VectorCount int32
+type GetUserArticleVectorsByThumbsDownRow struct {
+	ArticleHashID string
+	Vector        sql.NullString
+	DateRated     sql.NullTime
 }
 
-func (q *Queries) GetUserVector(ctx context.Context, userID string) (GetUserVectorRow, error) {
-	row := q.db.QueryRowContext(ctx, getUserVector, userID)
-	var i GetUserVectorRow
-	err := row.Scan(&i.VectorSum, &i.VectorCount)
+func (q *Queries) GetUserArticleVectorsByThumbsDown(ctx context.Context, userID string) ([]GetUserArticleVectorsByThumbsDownRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUserArticleVectorsByThumbsDown, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUserArticleVectorsByThumbsDownRow
+	for rows.Next() {
+		var i GetUserArticleVectorsByThumbsDownRow
+		if err := rows.Scan(&i.ArticleHashID, &i.Vector, &i.DateRated); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUserArticleVectorsByThumbsUp = `-- name: GetUserArticleVectorsByThumbsUp :many
+SELECT article_hash_id, ` + "`" + `vector` + "`" + `, date_rated
+FROM user_article_interactions
+WHERE user_id = ? AND thumbs_up = TRUE AND ` + "`" + `vector` + "`" + ` IS NOT NULL
+ORDER BY date_rated DESC
+`
+
+type GetUserArticleVectorsByThumbsUpRow struct {
+	ArticleHashID string
+	Vector        sql.NullString
+	DateRated     sql.NullTime
+}
+
+func (q *Queries) GetUserArticleVectorsByThumbsUp(ctx context.Context, userID string) ([]GetUserArticleVectorsByThumbsUpRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUserArticleVectorsByThumbsUp, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUserArticleVectorsByThumbsUpRow
+	for rows.Next() {
+		var i GetUserArticleVectorsByThumbsUpRow
+		if err := rows.Scan(&i.ArticleHashID, &i.Vector, &i.DateRated); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUserInterestClusters = `-- name: GetUserInterestClusters :many
+SELECT cluster_id, centroid_vector, article_count, updated_at
+FROM user_interest_clusters
+WHERE user_id = ?
+ORDER BY cluster_id
+`
+
+type GetUserInterestClustersRow struct {
+	ClusterID      int32
+	CentroidVector []byte
+	ArticleCount   int32
+	UpdatedAt      time.Time
+}
+
+func (q *Queries) GetUserInterestClusters(ctx context.Context, userID string) ([]GetUserInterestClustersRow, error) {
+	rows, err := q.db.QueryContext(ctx, getUserInterestClusters, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetUserInterestClustersRow
+	for rows.Next() {
+		var i GetUserInterestClustersRow
+		if err := rows.Scan(
+			&i.ClusterID,
+			&i.CentroidVector,
+			&i.ArticleCount,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUserRecommendationState = `-- name: GetUserRecommendationState :one
+
+SELECT last_generated_at, last_rating_at, needs_regeneration
+FROM user_recommendation_state
+WHERE user_id = ?
+`
+
+type GetUserRecommendationStateRow struct {
+	LastGeneratedAt   sql.NullTime
+	LastRatingAt      sql.NullTime
+	NeedsRegeneration bool
+}
+
+// ============================================
+// User Recommendation State
+// ============================================
+func (q *Queries) GetUserRecommendationState(ctx context.Context, userID string) (GetUserRecommendationStateRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserRecommendationState, userID)
+	var i GetUserRecommendationStateRow
+	err := row.Scan(&i.LastGeneratedAt, &i.LastRatingAt, &i.NeedsRegeneration)
 	return i, err
 }
 
@@ -170,9 +418,9 @@ func (q *Queries) InsertArticle(ctx context.Context, arg InsertArticleParams) er
 }
 
 const listDislikedArticleIDs = `-- name: ListDislikedArticleIDs :many
-SELECT article_hash_id FROM article_ratings
+SELECT article_hash_id FROM user_article_interactions
 WHERE user_id = ? AND thumbs_down = TRUE
-ORDER BY date_reviewed DESC
+ORDER BY date_rated DESC
 LIMIT ? OFFSET ?
 `
 
@@ -206,9 +454,9 @@ func (q *Queries) ListDislikedArticleIDs(ctx context.Context, arg ListDislikedAr
 }
 
 const listLikedArticleIDs = `-- name: ListLikedArticleIDs :many
-SELECT article_hash_id FROM article_ratings
+SELECT article_hash_id FROM user_article_interactions
 WHERE user_id = ? AND thumbs_up = TRUE
-ORDER BY date_reviewed DESC
+ORDER BY date_rated DESC
 LIMIT ? OFFSET ?
 `
 
@@ -241,8 +489,36 @@ func (q *Queries) ListLikedArticleIDs(ctx context.Context, arg ListLikedArticleI
 	return items, nil
 }
 
+const listReadArticleIDs = `-- name: ListReadArticleIDs :many
+SELECT article_hash_id FROM user_article_interactions
+WHERE user_id = ? AND have_read = TRUE
+`
+
+func (q *Queries) ListReadArticleIDs(ctx context.Context, userID string) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listReadArticleIDs, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var article_hash_id string
+		if err := rows.Scan(&article_hash_id); err != nil {
+			return nil, err
+		}
+		items = append(items, article_hash_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listThumbsUpArticleIDs = `-- name: ListThumbsUpArticleIDs :many
-SELECT article_hash_id FROM article_ratings
+SELECT article_hash_id FROM user_article_interactions
 WHERE user_id = ? AND thumbs_up = TRUE
 `
 
@@ -270,11 +546,11 @@ func (q *Queries) ListThumbsUpArticleIDs(ctx context.Context, userID string) ([]
 }
 
 const listUnreviewedArticleIDs = `-- name: ListUnreviewedArticleIDs :many
-SELECT article_hash_id FROM article_ratings
+SELECT article_hash_id FROM user_article_interactions
 WHERE user_id = ?
     AND have_read = TRUE
-    AND (thumbs_up = FALSE OR thumbs_up IS NULL)
-    AND (thumbs_down = FALSE OR thumbs_down IS NULL)
+    AND thumbs_up = FALSE
+    AND thumbs_down = FALSE
 ORDER BY date_read DESC
 LIMIT ? OFFSET ?
 `
@@ -308,10 +584,64 @@ func (q *Queries) ListUnreviewedArticleIDs(ctx context.Context, arg ListUnreview
 	return items, nil
 }
 
+const listUsersNeedingRegeneration = `-- name: ListUsersNeedingRegeneration :many
+SELECT user_id
+FROM user_recommendation_state
+WHERE needs_regeneration = TRUE
+ORDER BY last_rating_at ASC
+`
+
+func (q *Queries) ListUsersNeedingRegeneration(ctx context.Context) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listUsersNeedingRegeneration)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var user_id string
+		if err := rows.Scan(&user_id); err != nil {
+			return nil, err
+		}
+		items = append(items, user_id)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const markUserNeedsRegeneration = `-- name: MarkUserNeedsRegeneration :exec
+INSERT INTO user_recommendation_state (user_id, last_rating_at, needs_regeneration)
+VALUES (?, NOW(), TRUE)
+ON DUPLICATE KEY UPDATE
+    last_rating_at = NOW(),
+    needs_regeneration = TRUE
+`
+
+func (q *Queries) MarkUserNeedsRegeneration(ctx context.Context, userID string) error {
+	_, err := q.db.ExecContext(ctx, markUserNeedsRegeneration, userID)
+	return err
+}
+
+const markUserRegenerated = `-- name: MarkUserRegenerated :exec
+UPDATE user_recommendation_state
+SET last_generated_at = NOW(), needs_regeneration = FALSE
+WHERE user_id = ?
+`
+
+func (q *Queries) MarkUserRegenerated(ctx context.Context, userID string) error {
+	_, err := q.db.ExecContext(ctx, markUserRegenerated, userID)
+	return err
+}
+
 const setArticleRead = `-- name: SetArticleRead :exec
-INSERT INTO article_ratings (
-        article_hash_id,
+INSERT INTO user_article_interactions (
         user_id,
+        article_hash_id,
         have_read,
         thumbs_up,
         thumbs_down,
@@ -323,16 +653,16 @@ ON DUPLICATE KEY UPDATE
 `
 
 type SetArticleReadParams struct {
-	ArticleHashID string
 	UserID        string
-	HaveRead      sql.NullBool
+	ArticleHashID string
+	HaveRead      bool
 	DateRead      sql.NullTime
 }
 
 func (q *Queries) SetArticleRead(ctx context.Context, arg SetArticleReadParams) error {
 	_, err := q.db.ExecContext(ctx, setArticleRead,
-		arg.ArticleHashID,
 		arg.UserID,
+		arg.ArticleHashID,
 		arg.HaveRead,
 		arg.DateRead,
 		arg.HaveRead,
@@ -341,123 +671,132 @@ func (q *Queries) SetArticleRead(ctx context.Context, arg SetArticleReadParams) 
 	return err
 }
 
-const setArticleThumbsDown = `-- name: SetArticleThumbsDown :exec
-INSERT INTO article_ratings (
-        article_hash_id,
-        user_id,
-        have_read,
-        thumbs_up,
-        thumbs_down,
-        date_reviewed
-    ) VALUES (?, ?, FALSE, FALSE, ?, ?)
+const upsertPrecomputedRecommendation = `-- name: UpsertPrecomputedRecommendation :exec
+
+INSERT INTO user_precomputed_recommendations (user_id, article_hash_id, score, source, position, generated_at)
+VALUES (?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
-    thumbs_down = ?,
-    thumbs_up = IF(?, FALSE, thumbs_up),
-    date_reviewed = COALESCE(date_reviewed, ?)
+    score = VALUES(score),
+    source = VALUES(source),
+    position = VALUES(position),
+    generated_at = VALUES(generated_at)
 `
 
-type SetArticleThumbsDownParams struct {
-	ArticleHashID string
+type UpsertPrecomputedRecommendationParams struct {
 	UserID        string
-	ThumbsDown    sql.NullBool
-	DateReviewed  sql.NullTime
+	ArticleHashID string
+	Score         float64
+	Source        string
+	Position      int32
+	GeneratedAt   time.Time
 }
 
-func (q *Queries) SetArticleThumbsDown(ctx context.Context, arg SetArticleThumbsDownParams) error {
-	_, err := q.db.ExecContext(ctx, setArticleThumbsDown,
-		arg.ArticleHashID,
+// ============================================
+// Precomputed Recommendations
+// ============================================
+func (q *Queries) UpsertPrecomputedRecommendation(ctx context.Context, arg UpsertPrecomputedRecommendationParams) error {
+	_, err := q.db.ExecContext(ctx, upsertPrecomputedRecommendation,
 		arg.UserID,
-		arg.ThumbsDown,
-		arg.DateReviewed,
-		arg.ThumbsDown,
-		arg.ThumbsDown,
-		arg.DateReviewed,
+		arg.ArticleHashID,
+		arg.Score,
+		arg.Source,
+		arg.Position,
+		arg.GeneratedAt,
 	)
 	return err
 }
 
-const setArticleThumbsUp = `-- name: SetArticleThumbsUp :exec
-INSERT INTO article_ratings (
-        article_hash_id,
-        user_id,
-        have_read,
-        thumbs_up,
-        thumbs_down,
-        date_reviewed
-    ) VALUES (?, ?, FALSE, ?, FALSE, ?)
+const upsertUserArticleInteraction = `-- name: UpsertUserArticleInteraction :exec
+INSERT INTO user_article_interactions (
+    user_id, article_hash_id, have_read, thumbs_up, thumbs_down,
+    date_read, date_rated, ` + "`" + `vector` + "`" + `
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 ON DUPLICATE KEY UPDATE
-    thumbs_up = ?,
-    thumbs_down = IF(?, FALSE, thumbs_down),
-    date_reviewed = COALESCE(date_reviewed, ?)
+    have_read = VALUES(have_read),
+    thumbs_up = VALUES(thumbs_up),
+    thumbs_down = VALUES(thumbs_down),
+    date_read = VALUES(date_read),
+    date_rated = VALUES(date_rated),
+    ` + "`" + `vector` + "`" + ` = VALUES(` + "`" + `vector` + "`" + `)
 `
 
-type SetArticleThumbsUpParams struct {
-	ArticleHashID string
+type UpsertUserArticleInteractionParams struct {
 	UserID        string
-	ThumbsUp      sql.NullBool
-	DateReviewed  sql.NullTime
+	ArticleHashID string
+	HaveRead      bool
+	ThumbsUp      bool
+	ThumbsDown    bool
+	DateRead      sql.NullTime
+	DateRated     sql.NullTime
+	Vector        sql.NullString
 }
 
-func (q *Queries) SetArticleThumbsUp(ctx context.Context, arg SetArticleThumbsUpParams) error {
-	_, err := q.db.ExecContext(ctx, setArticleThumbsUp,
-		arg.ArticleHashID,
+func (q *Queries) UpsertUserArticleInteraction(ctx context.Context, arg UpsertUserArticleInteractionParams) error {
+	_, err := q.db.ExecContext(ctx, upsertUserArticleInteraction,
 		arg.UserID,
+		arg.ArticleHashID,
+		arg.HaveRead,
 		arg.ThumbsUp,
-		arg.DateReviewed,
-		arg.ThumbsUp,
-		arg.ThumbsUp,
-		arg.DateReviewed,
+		arg.ThumbsDown,
+		arg.DateRead,
+		arg.DateRated,
+		arg.Vector,
 	)
 	return err
 }
 
-const setRatingVectorAdded = `-- name: SetRatingVectorAdded :exec
-UPDATE article_ratings SET vector_added = ? WHERE user_id = ? AND article_hash_id = ?
-`
+const upsertUserInterestCluster = `-- name: UpsertUserInterestCluster :exec
 
-type SetRatingVectorAddedParams struct {
-	VectorAdded   bool
-	UserID        string
-	ArticleHashID string
-}
-
-func (q *Queries) SetRatingVectorAdded(ctx context.Context, arg SetRatingVectorAddedParams) error {
-	_, err := q.db.ExecContext(ctx, setRatingVectorAdded, arg.VectorAdded, arg.UserID, arg.ArticleHashID)
-	return err
-}
-
-const updateUserVectorSubtract = `-- name: UpdateUserVectorSubtract :exec
-UPDATE user_recommendation_vectors
-SET vector_sum = ?, vector_count = vector_count - 1, updated_at = NOW()
-WHERE user_id = ?
-`
-
-type UpdateUserVectorSubtractParams struct {
-	VectorSum []byte
-	UserID    string
-}
-
-func (q *Queries) UpdateUserVectorSubtract(ctx context.Context, arg UpdateUserVectorSubtractParams) error {
-	_, err := q.db.ExecContext(ctx, updateUserVectorSubtract, arg.VectorSum, arg.UserID)
-	return err
-}
-
-const upsertUserVectorAdd = `-- name: UpsertUserVectorAdd :exec
-INSERT INTO user_recommendation_vectors (user_id, vector_sum, vector_count, updated_at)
-VALUES (?, ?, 1, NOW())
+INSERT INTO user_interest_clusters (user_id, cluster_id, centroid_vector, article_count, updated_at)
+VALUES (?, ?, ?, ?, NOW())
 ON DUPLICATE KEY UPDATE
-    vector_sum = ?,
-    vector_count = vector_count + 1,
+    centroid_vector = VALUES(centroid_vector),
+    article_count = VALUES(article_count),
     updated_at = NOW()
 `
 
-type UpsertUserVectorAddParams struct {
-	UserID      string
-	VectorSum   []byte
-	VectorSum_2 []byte
+type UpsertUserInterestClusterParams struct {
+	UserID         string
+	ClusterID      int32
+	CentroidVector []byte
+	ArticleCount   int32
 }
 
-func (q *Queries) UpsertUserVectorAdd(ctx context.Context, arg UpsertUserVectorAddParams) error {
-	_, err := q.db.ExecContext(ctx, upsertUserVectorAdd, arg.UserID, arg.VectorSum, arg.VectorSum_2)
+// ============================================
+// User Interest Clusters
+// ============================================
+func (q *Queries) UpsertUserInterestCluster(ctx context.Context, arg UpsertUserInterestClusterParams) error {
+	_, err := q.db.ExecContext(ctx, upsertUserInterestCluster,
+		arg.UserID,
+		arg.ClusterID,
+		arg.CentroidVector,
+		arg.ArticleCount,
+	)
+	return err
+}
+
+const upsertUserRecommendationState = `-- name: UpsertUserRecommendationState :exec
+INSERT INTO user_recommendation_state (user_id, last_generated_at, last_rating_at, needs_regeneration)
+VALUES (?, ?, ?, ?)
+ON DUPLICATE KEY UPDATE
+    last_generated_at = COALESCE(VALUES(last_generated_at), last_generated_at),
+    last_rating_at = COALESCE(VALUES(last_rating_at), last_rating_at),
+    needs_regeneration = VALUES(needs_regeneration)
+`
+
+type UpsertUserRecommendationStateParams struct {
+	UserID            string
+	LastGeneratedAt   sql.NullTime
+	LastRatingAt      sql.NullTime
+	NeedsRegeneration bool
+}
+
+func (q *Queries) UpsertUserRecommendationState(ctx context.Context, arg UpsertUserRecommendationStateParams) error {
+	_, err := q.db.ExecContext(ctx, upsertUserRecommendationState,
+		arg.UserID,
+		arg.LastGeneratedAt,
+		arg.LastRatingAt,
+		arg.NeedsRegeneration,
+	)
 	return err
 }

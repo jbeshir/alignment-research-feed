@@ -16,20 +16,14 @@ func MakeRouter(
 	rssFeedBaseURL, rssFeedAuthorName, rssFeedAuthorEmail string,
 	latestCacheMaxAge time.Duration,
 	authMiddleware func(http.Handler) http.Handler,
+	recommendArticlesCmd *command.RecommendArticles,
 ) (http.Handler, error) {
 	r := mux.NewRouter()
 	r.Use(corsMiddleware)
 	r.Use(authMiddleware)
 
-	// Create shared commands for vector updates
-	addVectorCmd := &command.AddArticleToUserVector{
-		ArticleVectorFetcher: similarity,
-		UserVectorSyncer:     dataset,
-	}
-	removeVectorCmd := &command.RemoveArticleFromUserVector{
-		ArticleVectorFetcher: similarity,
-		UserVectorSyncer:     dataset,
-	}
+	// Create shared command for rating updates
+	setRatingCmd := command.NewSetArticleRating(similarity, dataset, dataset)
 
 	r.Handle("/v1/articles", controller.ArticlesList{
 		Lister:      dataset,
@@ -37,11 +31,7 @@ func MakeRouter(
 	}).Methods(http.MethodGet, http.MethodOptions)
 
 	r.Handle("/v1/articles/recommended", requireAuthMiddleware(controller.RecommendedArticlesList{
-		Command: &command.RecommendArticles{
-			VectorSimilarity: similarity,
-			ArticleFetcher:   dataset,
-			UserVectorGetter: dataset,
-		},
+		Command: recommendArticlesCmd,
 	})).Methods(http.MethodGet, http.MethodOptions)
 
 	r.Handle("/v1/articles/unreviewed", requireAuthMiddleware(controller.UserArticlesList{
@@ -78,17 +68,16 @@ func MakeRouter(
 		ReadSetter: dataset,
 	})).Methods(http.MethodPost, http.MethodOptions)
 
-	r.Handle("/v1/articles/{article_id}/thumbs_up/{thumbs_up}", requireAuthMiddleware(controller.ArticleThumbsUpSet{
-		Fetcher:         dataset,
-		ThumbsUpSetter:  dataset,
-		AddVectorCmd:    addVectorCmd,
-		RemoveVectorCmd: removeVectorCmd,
+	r.Handle("/v1/articles/{article_id}/thumbs_up/{thumbs_up}", requireAuthMiddleware(controller.ArticleRatingSet{
+		Fetcher:      dataset,
+		SetRatingCmd: setRatingCmd,
+		RatingType:   controller.RatingTypeThumbsUp,
 	})).Methods(http.MethodPost, http.MethodOptions)
 
-	r.Handle("/v1/articles/{article_id}/thumbs_down/{thumbs_down}", requireAuthMiddleware(controller.ArticleThumbsDownSet{
-		Fetcher:          dataset,
-		ThumbsDownSetter: dataset,
-		RemoveVectorCmd:  removeVectorCmd,
+	r.Handle("/v1/articles/{article_id}/thumbs_down/{thumbs_down}", requireAuthMiddleware(controller.ArticleRatingSet{
+		Fetcher:      dataset,
+		SetRatingCmd: setRatingCmd,
+		RatingType:   controller.RatingTypeThumbsDown,
 	})).Methods(http.MethodPost, http.MethodOptions)
 
 	rssFeeds := []controller.RSS{

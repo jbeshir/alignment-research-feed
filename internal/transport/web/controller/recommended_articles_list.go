@@ -8,8 +8,13 @@ import (
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
 )
 
+const (
+	// recommendationsLimit is the number of recommendations to return.
+	recommendationsLimit = 100
+)
+
 type RecommendedArticlesList struct {
-	Command *command.RecommendArticles
+	Command command.Command[command.RecommendArticlesRequest, []domain.Article]
 }
 
 func (c RecommendedArticlesList) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -22,10 +27,9 @@ func (c RecommendedArticlesList) ServeHTTP(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	articles, err := c.Command.Execute(ctx, userID, 10)
+	articles, err := c.Command.Execute(ctx, command.RecommendArticlesRequest{UserID: userID, Limit: recommendationsLimit})
 	if err != nil {
 		logger.ErrorContext(ctx, "unable to get recommended articles", "error", err)
-
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

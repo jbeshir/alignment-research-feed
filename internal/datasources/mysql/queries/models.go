@@ -83,17 +83,6 @@ type Article struct {
 	PineconeStatus ArticlesPineconeStatus
 }
 
-type ArticleRating struct {
-	ArticleHashID string
-	UserID        string
-	HaveRead      sql.NullBool
-	ThumbsUp      sql.NullBool
-	ThumbsDown    sql.NullBool
-	VectorAdded   bool
-	DateRead      sql.NullTime
-	DateReviewed  sql.NullTime
-}
-
 type Summary struct {
 	ID        int32
 	Text      string
@@ -101,9 +90,37 @@ type Summary struct {
 	ArticleID int32
 }
 
-type UserRecommendationVector struct {
-	UserID      string
-	VectorSum   []byte
-	VectorCount int32
-	UpdatedAt   time.Time
+type UserArticleInteraction struct {
+	UserID        string
+	ArticleHashID string
+	HaveRead      bool
+	ThumbsUp      bool
+	ThumbsDown    bool
+	DateRead      sql.NullTime
+	DateRated     sql.NullTime
+	Vector        sql.NullString
+}
+
+type UserInterestCluster struct {
+	UserID         string
+	ClusterID      int32
+	CentroidVector []byte
+	ArticleCount   int32
+	UpdatedAt      time.Time
+}
+
+type UserPrecomputedRecommendation struct {
+	UserID        string
+	ArticleHashID string
+	Score         float64
+	Source        string
+	Position      int32
+	GeneratedAt   time.Time
+}
+
+type UserRecommendationState struct {
+	UserID            string
+	LastGeneratedAt   sql.NullTime
+	LastRatingAt      sql.NullTime
+	NeedsRegeneration bool
 }
