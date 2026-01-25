@@ -28,10 +28,12 @@ func Setup(ctx context.Context) ([]Component, error) {
 		return nil, fmt.Errorf("setting up similarity repository: %w", err)
 	}
 
-	authMiddleware, err := setupAuthMiddleware(ctx)
+	authMiddleware, err := setupAuthMiddleware(ctx, dataset)
 	if err != nil {
 		return nil, fmt.Errorf("setting up auth middleware: %w", err)
 	}
+
+	createAPITokenCmd := command.NewCreateAPIToken(dataset, dataset)
 
 	generateRecommendationsCmd := command.NewGenerateRecommendations(
 		similarity,
@@ -59,6 +61,7 @@ func Setup(ctx context.Context) ([]Component, error) {
 		MustGetEnvAsString(ctx, "RSS_FEED_AUTHOR_EMAIL"),
 		MustGetEnvAsDuration(ctx, "RSS_FEED_LATEST_CACHE_MAX_AGE"),
 		authMiddleware,
+		createAPITokenCmd,
 		recommendArticlesCmd,
 	)
 	if err != nil {
@@ -80,7 +83,6 @@ func setupDatasetRepository(ctx context.Context) (datasources.DatasetRepository,
 	if err != nil {
 		return nil, fmt.Errorf("connecting to MySQL: %w", err)
 	}
-
 	return mysql.New(db), nil
 }
 
@@ -103,17 +105,30 @@ func setupSimilarityRepository(ctx context.Context) (datasources.SimilarityRepos
 	}
 }
 
-func setupAuthMiddleware(ctx context.Context) (func(http.Handler) http.Handler, error) {
-	switch driver := MustGetEnvAsString(ctx, "AUTH_DRIVER"); driver {
-	case "null":
-		return func(next http.Handler) http.Handler {
-			return next
-		}, nil
-	case "auth0":
-		return router.SetupAuth0Middleware(
-			MustGetEnvAsString(ctx, "AUTH0_DOMAIN"),
-			MustGetEnvAsString(ctx, "AUTH0_AUDIENCE"))
-	default:
-		return nil, fmt.Errorf("unknown auth driver [%s]", driver)
+func setupAuthMiddleware(
+	ctx context.Context, dataset datasources.DatasetRepository,
+) (func(http.Handler) http.Handler, error) {
+	var validators []router.AuthValidator
+
+	for _, driver := range MustGetEnvAsStrings(ctx, "AUTH_DRIVERS") {
+		switch driver {
+		case "":
+			// Skip empty strings (e.g., from splitting an empty AUTH_DRIVERS)
+		case "auth0":
+			v, err := router.NewAuth0Validator(
+				MustGetEnvAsString(ctx, "AUTH0_DOMAIN"),
+				MustGetEnvAsString(ctx, "AUTH0_AUDIENCE"),
+			)
+			if err != nil {
+				return nil, fmt.Errorf("creating Auth0 validator: %w", err)
+			}
+			validators = append(validators, v)
+		case "api_token":
+			validators = append(validators, router.NewAPITokenValidator(ctx, dataset, dataset))
+		default:
+			return nil, fmt.Errorf("unknown auth driver [%s]", driver)
+		}
 	}
+
+	return router.NewAuthMiddleware(validators), nil
 }

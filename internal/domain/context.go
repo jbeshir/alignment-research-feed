@@ -35,3 +35,26 @@ func UserIDFromContext(ctx context.Context) string {
 	}
 	return userID.(string)
 }
+
+// AuthMethod represents the authentication method used for a request.
+type AuthMethod string
+
+const (
+	AuthMethodNone     AuthMethod = ""
+	AuthMethodAuth0    AuthMethod = "auth0"
+	AuthMethodAPIToken AuthMethod = "api_token"
+)
+
+const authMethodContextKey contextKey = "auth_method"
+
+func ContextWithAuthMethod(ctx context.Context, method AuthMethod) context.Context {
+	return context.WithValue(ctx, authMethodContextKey, method)
+}
+
+func AuthMethodFromContext(ctx context.Context) AuthMethod {
+	method := ctx.Value(authMethodContextKey)
+	if method == nil {
+		return AuthMethodNone
+	}
+	return method.(AuthMethod)
+}

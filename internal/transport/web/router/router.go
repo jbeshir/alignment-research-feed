@@ -16,6 +16,7 @@ func MakeRouter(
 	rssFeedBaseURL, rssFeedAuthorName, rssFeedAuthorEmail string,
 	latestCacheMaxAge time.Duration,
 	authMiddleware func(http.Handler) http.Handler,
+	createAPITokenCmd *command.CreateAPIToken,
 	recommendArticlesCmd *command.RecommendArticles,
 ) (http.Handler, error) {
 	r := mux.NewRouter()
@@ -94,6 +95,19 @@ func MakeRouter(
 	for _, feed := range rssFeeds {
 		r.Handle(feed.FeedPath, feed)
 	}
+
+	// API Token management endpoints (no API token auth allowed)
+	r.Handle("/v1/tokens", requireNonAPITokenAuthMiddleware(controller.APITokenCreate{
+		CreateCmd: createAPITokenCmd,
+	})).Methods(http.MethodPost, http.MethodOptions)
+
+	r.Handle("/v1/tokens", requireNonAPITokenAuthMiddleware(controller.APITokenList{
+		TokenLister: dataset,
+	})).Methods(http.MethodGet, http.MethodOptions)
+
+	r.Handle("/v1/tokens/{token_id}", requireNonAPITokenAuthMiddleware(controller.APITokenRevoke{
+		TokenRevoker: dataset,
+	})).Methods(http.MethodDelete, http.MethodOptions)
 
 	return r, nil
 }
