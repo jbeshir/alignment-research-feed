@@ -648,3 +648,105 @@ func (r *Repository) MarkUserRegenerated(ctx context.Context, userID string) err
 func (r *Repository) ListUsersNeedingRegeneration(ctx context.Context) ([]string, error) {
 	return r.queries.ListUsersNeedingRegeneration(ctx)
 }
+
+// ============================================
+// API Token Store Implementation
+// ============================================
+
+// CreateAPIToken creates a new API token.
+func (r *Repository) CreateAPIToken(
+	ctx context.Context,
+	id, userID, tokenHash, tokenPrefix string,
+	name *string,
+	expiresAt *time.Time,
+) error {
+	var nameStr sql.NullString
+	if name != nil {
+		nameStr = sql.NullString{String: *name, Valid: true}
+	}
+
+	var expiresAtTime sql.NullTime
+	if expiresAt != nil {
+		expiresAtTime = sql.NullTime{Time: *expiresAt, Valid: true}
+	}
+
+	return r.queries.CreateAPIToken(ctx, queries.CreateAPITokenParams{
+		ID:          id,
+		UserID:      userID,
+		TokenHash:   tokenHash,
+		TokenPrefix: tokenPrefix,
+		Name:        nameStr,
+		ExpiresAt:   expiresAtTime,
+	})
+}
+
+// GetAPITokenByHash retrieves an API token by its hash.
+func (r *Repository) GetAPITokenByHash(ctx context.Context, tokenHash string) (domain.APIToken, error) {
+	row, err := r.queries.GetAPITokenByHash(ctx, tokenHash)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return domain.APIToken{}, fmt.Errorf("token not found: %w", err)
+		}
+		return domain.APIToken{}, fmt.Errorf("fetching token by hash: %w", err)
+	}
+
+	return convertAPIToken(row), nil
+}
+
+// UpdateAPITokenLastUsed updates the last_used_at timestamp for a token.
+func (r *Repository) UpdateAPITokenLastUsed(ctx context.Context, tokenID string) error {
+	return r.queries.UpdateAPITokenLastUsed(ctx, tokenID)
+}
+
+// ListUserAPITokens lists all tokens for a user.
+func (r *Repository) ListUserAPITokens(ctx context.Context, userID string) ([]domain.APIToken, error) {
+	rows, err := r.queries.ListUserAPITokens(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("listing user API tokens: %w", err)
+	}
+
+	tokens := make([]domain.APIToken, 0, len(rows))
+	for _, row := range rows {
+		tokens = append(tokens, convertAPIToken(row))
+	}
+
+	return tokens, nil
+}
+
+// CountUserActiveAPITokens counts active tokens for a user.
+func (r *Repository) CountUserActiveAPITokens(ctx context.Context, userID string) (int64, error) {
+	return r.queries.CountUserActiveAPITokens(ctx, userID)
+}
+
+// RevokeAPIToken revokes a token.
+func (r *Repository) RevokeAPIToken(ctx context.Context, tokenID, userID string) error {
+	return r.queries.RevokeAPIToken(ctx, queries.RevokeAPITokenParams{
+		ID:     tokenID,
+		UserID: userID,
+	})
+}
+
+func convertAPIToken(row queries.ApiToken) domain.APIToken {
+	token := domain.APIToken{
+		ID:        row.ID,
+		UserID:    row.UserID,
+		TokenHash: row.TokenHash,
+		Prefix:    row.TokenPrefix,
+		CreatedAt: row.CreatedAt,
+	}
+
+	if row.Name.Valid {
+		token.Name = &row.Name.String
+	}
+	if row.LastUsedAt.Valid {
+		token.LastUsedAt = &row.LastUsedAt.Time
+	}
+	if row.ExpiresAt.Valid {
+		token.ExpiresAt = &row.ExpiresAt.Time
+	}
+	if row.RevokedAt.Valid {
+		token.RevokedAt = &row.RevokedAt.Time
+	}
+
+	return token
+}

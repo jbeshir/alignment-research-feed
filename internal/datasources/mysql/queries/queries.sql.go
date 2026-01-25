@@ -12,6 +12,19 @@ import (
 	"time"
 )
 
+const countUserActiveAPITokens = `-- name: CountUserActiveAPITokens :one
+SELECT COUNT(*) as count
+FROM api_tokens
+WHERE user_id = ? AND revoked_at IS NULL
+`
+
+func (q *Queries) CountUserActiveAPITokens(ctx context.Context, userID string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countUserActiveAPITokens, userID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countUserArticleVectorsByThumbsDown = `-- name: CountUserArticleVectorsByThumbsDown :one
 SELECT COUNT(*) as count
 FROM user_article_interactions
@@ -36,6 +49,36 @@ func (q *Queries) CountUserArticleVectorsByThumbsUp(ctx context.Context, userID 
 	var count int64
 	err := row.Scan(&count)
 	return count, err
+}
+
+const createAPIToken = `-- name: CreateAPIToken :exec
+
+INSERT INTO api_tokens (id, user_id, token_hash, token_prefix, name, created_at, expires_at)
+VALUES (?, ?, ?, ?, ?, NOW(), ?)
+`
+
+type CreateAPITokenParams struct {
+	ID          string
+	UserID      string
+	TokenHash   string
+	TokenPrefix string
+	Name        sql.NullString
+	ExpiresAt   sql.NullTime
+}
+
+// ============================================
+// API Tokens
+// ============================================
+func (q *Queries) CreateAPIToken(ctx context.Context, arg CreateAPITokenParams) error {
+	_, err := q.db.ExecContext(ctx, createAPIToken,
+		arg.ID,
+		arg.UserID,
+		arg.TokenHash,
+		arg.TokenPrefix,
+		arg.Name,
+		arg.ExpiresAt,
+	)
+	return err
 }
 
 const deleteUserInterestClusters = `-- name: DeleteUserInterestClusters :exec
@@ -138,6 +181,29 @@ func (q *Queries) FetchArticlesByID(ctx context.Context, arg FetchArticlesByIDPa
 		return nil, err
 	}
 	return items, nil
+}
+
+const getAPITokenByHash = `-- name: GetAPITokenByHash :one
+SELECT id, user_id, token_hash, token_prefix, name, created_at, last_used_at, expires_at, revoked_at
+FROM api_tokens
+WHERE token_hash = ?
+`
+
+func (q *Queries) GetAPITokenByHash(ctx context.Context, tokenHash string) (ApiToken, error) {
+	row := q.db.QueryRowContext(ctx, getAPITokenByHash, tokenHash)
+	var i ApiToken
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.TokenHash,
+		&i.TokenPrefix,
+		&i.Name,
+		&i.CreatedAt,
+		&i.LastUsedAt,
+		&i.ExpiresAt,
+		&i.RevokedAt,
+	)
+	return i, err
 }
 
 const getPrecomputedRecommendationAge = `-- name: GetPrecomputedRecommendationAge :one
@@ -584,6 +650,46 @@ func (q *Queries) ListUnreviewedArticleIDs(ctx context.Context, arg ListUnreview
 	return items, nil
 }
 
+const listUserAPITokens = `-- name: ListUserAPITokens :many
+SELECT id, user_id, token_hash, token_prefix, name, created_at, last_used_at, expires_at, revoked_at
+FROM api_tokens
+WHERE user_id = ?
+ORDER BY created_at DESC
+`
+
+func (q *Queries) ListUserAPITokens(ctx context.Context, userID string) ([]ApiToken, error) {
+	rows, err := q.db.QueryContext(ctx, listUserAPITokens, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ApiToken
+	for rows.Next() {
+		var i ApiToken
+		if err := rows.Scan(
+			&i.ID,
+			&i.UserID,
+			&i.TokenHash,
+			&i.TokenPrefix,
+			&i.Name,
+			&i.CreatedAt,
+			&i.LastUsedAt,
+			&i.ExpiresAt,
+			&i.RevokedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listUsersNeedingRegeneration = `-- name: ListUsersNeedingRegeneration :many
 SELECT user_id
 FROM user_recommendation_state
@@ -638,6 +744,22 @@ func (q *Queries) MarkUserRegenerated(ctx context.Context, userID string) error 
 	return err
 }
 
+const revokeAPIToken = `-- name: RevokeAPIToken :exec
+UPDATE api_tokens
+SET revoked_at = NOW()
+WHERE id = ? AND user_id = ?
+`
+
+type RevokeAPITokenParams struct {
+	ID     string
+	UserID string
+}
+
+func (q *Queries) RevokeAPIToken(ctx context.Context, arg RevokeAPITokenParams) error {
+	_, err := q.db.ExecContext(ctx, revokeAPIToken, arg.ID, arg.UserID)
+	return err
+}
+
 const setArticleRead = `-- name: SetArticleRead :exec
 INSERT INTO user_article_interactions (
         user_id,
@@ -668,6 +790,17 @@ func (q *Queries) SetArticleRead(ctx context.Context, arg SetArticleReadParams) 
 		arg.HaveRead,
 		arg.DateRead,
 	)
+	return err
+}
+
+const updateAPITokenLastUsed = `-- name: UpdateAPITokenLastUsed :exec
+UPDATE api_tokens
+SET last_used_at = NOW()
+WHERE id = ?
+`
+
+func (q *Queries) UpdateAPITokenLastUsed(ctx context.Context, id string) error {
+	_, err := q.db.ExecContext(ctx, updateAPITokenLastUsed, id)
 	return err
 }
 

@@ -20,6 +20,7 @@ type DatasetRepository interface {
 	UserInterestClusterStore
 	PrecomputedRecommendationStore
 	UserRecommendationStateStore
+	APITokenRepository
 }
 
 type ArticleFetcher interface {

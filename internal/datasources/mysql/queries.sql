@@ -203,3 +203,37 @@ SELECT user_id
 FROM user_recommendation_state
 WHERE needs_regeneration = TRUE
 ORDER BY last_rating_at ASC;
+
+-- ============================================
+-- API Tokens
+-- ============================================
+
+-- name: CreateAPIToken :exec
+INSERT INTO api_tokens (id, user_id, token_hash, token_prefix, name, created_at, expires_at)
+VALUES (?, ?, ?, ?, ?, NOW(), ?);
+
+-- name: GetAPITokenByHash :one
+SELECT id, user_id, token_hash, token_prefix, name, created_at, last_used_at, expires_at, revoked_at
+FROM api_tokens
+WHERE token_hash = ?;
+
+-- name: UpdateAPITokenLastUsed :exec
+UPDATE api_tokens
+SET last_used_at = NOW()
+WHERE id = ?;
+
+-- name: ListUserAPITokens :many
+SELECT id, user_id, token_hash, token_prefix, name, created_at, last_used_at, expires_at, revoked_at
+FROM api_tokens
+WHERE user_id = ?
+ORDER BY created_at DESC;
+
+-- name: CountUserActiveAPITokens :one
+SELECT COUNT(*) as count
+FROM api_tokens
+WHERE user_id = ? AND revoked_at IS NULL;
+
+-- name: RevokeAPIToken :exec
+UPDATE api_tokens
+SET revoked_at = NOW()
+WHERE id = ? AND user_id = ?;

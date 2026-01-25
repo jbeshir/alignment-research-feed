@@ -56,6 +56,18 @@ func (ns NullArticlesPineconeStatus) Value() (driver.Value, error) {
 	return string(ns.ArticlesPineconeStatus), nil
 }
 
+type ApiToken struct {
+	ID          string
+	UserID      string
+	TokenHash   string
+	TokenPrefix string
+	Name        sql.NullString
+	CreatedAt   time.Time
+	LastUsedAt  sql.NullTime
+	ExpiresAt   sql.NullTime
+	RevokedAt   sql.NullTime
+}
+
 type Article struct {
 	ID            int32
 	HashID        string
