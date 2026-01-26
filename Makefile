@@ -64,3 +64,14 @@ lint:
 fmt:
 	go fmt ./...
 	goimports -w .
+
+.PHONY: build-mcp
+build-mcp:
+	go build -o bin/alignment-feed-mcp ./cmd/mcp
+
+.PHONY: build-mcp-all
+build-mcp-all:
+	GOOS=darwin GOARCH=amd64 go build -o bin/alignment-feed-mcp-darwin-amd64 ./cmd/mcp
+	GOOS=darwin GOARCH=arm64 go build -o bin/alignment-feed-mcp-darwin-arm64 ./cmd/mcp
+	GOOS=linux GOARCH=amd64 go build -o bin/alignment-feed-mcp-linux-amd64 ./cmd/mcp
+	GOOS=windows GOARCH=amd64 go build -o bin/alignment-feed-mcp-windows-amd64.exe ./cmd/mcp
