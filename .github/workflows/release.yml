@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build and Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: Build MCP binaries
+        run: make build-mcp-all
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            bin/alignment-feed-mcp-darwin-amd64
+            bin/alignment-feed-mcp-darwin-arm64
+            bin/alignment-feed-mcp-linux-amd64
+            bin/alignment-feed-mcp-windows-amd64.exe
+          generate_release_notes: true
