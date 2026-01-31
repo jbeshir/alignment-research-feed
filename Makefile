@@ -8,6 +8,7 @@ setup-tools: setup-files
 	go install golang.org/x/tools/cmd/goimports@latest
 	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 	go install github.com/vektra/mockery/v2@latest
+	go install github.com/daveshanley/vacuum@latest
 
 .PHONY generate:
 generate:
@@ -59,6 +60,14 @@ setup-files: .env
 .PHONY: lint
 lint:
 	golangci-lint run ./...
+
+.PHONY: lint-openapi
+lint-openapi:
+	vacuum lint openapi/api.yaml
+
+.PHONY: build-openapi-docs
+build-openapi-docs:
+	npx @redocly/cli build-docs openapi/api.yaml -o openapi/index.html
 
 .PHONY: fmt
 fmt:

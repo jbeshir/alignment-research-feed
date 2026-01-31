@@ -1,0 +1,930 @@
+openapi: 3.0.3
+info:
+  title: Alignment Research Feed API
+  description: |
+    API for accessing AI alignment research articles, managing reading lists,
+    and getting personalized recommendations.
+  version: 1.0.0
+  contact:
+    name: Alignment Research Feed
+    url: https://alignmentfeed.org
+
+servers:
+  - url: https://api.alignmentfeed.org
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+tags:
+  - name: Articles
+    description: Article listing, search, and details
+  - name: User Interactions
+    description: Reading status and ratings (requires authentication)
+  - name: Recommendations
+    description: Personalized article recommendations
+  - name: API Tokens
+    description: Manage API tokens (requires Auth0 authentication)
+  - name: RSS
+    description: RSS feed
+
+paths:
+  /v1/articles:
+    get:
+      tags:
+        - Articles
+      summary: List articles
+      description: |
+        List and search alignment research articles with filtering, sorting, and pagination.
+        Results are paginated and can be filtered by source, date range, and text search.
+      operationId: listArticles
+      security:
+        - {}
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-indexed)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          description: Number of articles per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 100
+        - name: sort
+          in: query
+          description: |
+            Comma-separated list of fields to sort by. Append `_desc` for descending order.
+            Valid fields: `published_at`, `authors`, `source`, `title`.
+            Example: `published_at_desc,source`
+          schema:
+            type: string
+            example: published_at_desc
+        - name: filter_sources_allowlist
+          in: query
+          description: Comma-separated list of source names to include
+          schema:
+            type: string
+            example: arxiv,lesswrong
+        - name: filter_sources_blocklist
+          in: query
+          description: Comma-separated list of source names to exclude
+          schema:
+            type: string
+            example: youtube
+        - name: filter_title_fulltext
+          in: query
+          description: Full-text search in article titles
+          schema:
+            type: string
+        - name: filter_authors_fulltext
+          in: query
+          description: Full-text search in article authors
+          schema:
+            type: string
+        - name: filter_published_after
+          in: query
+          description: Include only articles published after this date
+          schema:
+            type: string
+            format: date-time
+            example: "2024-01-01T00:00:00Z"
+        - name: filter_published_before
+          in: query
+          description: Include only articles published before this date
+          schema:
+            type: string
+            format: date-time
+            example: "2024-12-31T23:59:59Z"
+      responses:
+        "200":
+          description: List of articles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticlesListResponse"
+        "400":
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/articles/{article_id}:
+    get:
+      tags:
+        - Articles
+      summary: Get article by ID
+      description: Retrieve full details of a specific article by its hash ID.
+      operationId: getArticle
+      security:
+        - {}
+        - BearerAuth: []
+      parameters:
+        - name: article_id
+          in: path
+          required: true
+          description: Article hash ID
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Article details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Article"
+        "404":
+          description: Article not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/articles/{article_id}/similar:
+    get:
+      tags:
+        - Articles
+      summary: Get similar articles
+      description: |
+        Find articles similar to the given article using vector similarity search.
+        Returns up to 10 similar articles.
+      operationId: getSimilarArticles
+      security:
+        - {}
+        - BearerAuth: []
+      parameters:
+        - name: article_id
+          in: path
+          required: true
+          description: Article hash ID
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Maximum number of similar articles to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        "200":
+          description: List of similar articles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticlesListResponse"
+        "404":
+          description: Article not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/articles/recommended:
+    get:
+      tags:
+        - Recommendations
+      summary: Get personalized recommendations
+      description: |
+        Get personalized article recommendations based on the user's rating history.
+        Returns up to 100 recommended articles.
+      operationId: getRecommendedArticles
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of recommendations to return
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 100
+      responses:
+        "200":
+          description: List of recommended articles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticlesListResponse"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/articles/unreviewed:
+    get:
+      tags:
+        - User Interactions
+      summary: List unreviewed articles
+      description: List articles the authenticated user has not yet reviewed (rated or marked as read).
+      operationId: listUnreviewedArticles
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-indexed)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          description: Number of articles per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: List of unreviewed articles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticlesListResponse"
+        "400":
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/articles/liked:
+    get:
+      tags:
+        - User Interactions
+      summary: List liked articles
+      description: List articles the authenticated user has given a thumbs up.
+      operationId: listLikedArticles
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-indexed)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          description: Number of articles per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: List of liked articles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticlesListResponse"
+        "400":
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/articles/disliked:
+    get:
+      tags:
+        - User Interactions
+      summary: List disliked articles
+      description: List articles the authenticated user has given a thumbs down.
+      operationId: listDislikedArticles
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-indexed)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          description: Number of articles per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 50
+      responses:
+        "200":
+          description: List of disliked articles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticlesListResponse"
+        "400":
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/articles/{article_id}/read/{read}:
+    post:
+      tags:
+        - User Interactions
+      summary: Mark article as read/unread
+      description: Mark an article as read or unread for the authenticated user.
+      operationId: setArticleReadStatus
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: article_id
+          in: path
+          required: true
+          description: Article hash ID
+          schema:
+            type: string
+        - name: read
+          in: path
+          required: true
+          description: Whether to mark as read (true) or unread (false)
+          schema:
+            type: string
+            enum:
+              - "true"
+              - "false"
+      responses:
+        "204":
+          description: Read status updated successfully
+        "400":
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/articles/{article_id}/thumbs_up/{thumbs_up}:
+    post:
+      tags:
+        - User Interactions
+      summary: Set thumbs up rating
+      description: Set or clear the thumbs up rating for an article.
+      operationId: setArticleThumbsUp
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: article_id
+          in: path
+          required: true
+          description: Article hash ID
+          schema:
+            type: string
+        - name: thumbs_up
+          in: path
+          required: true
+          description: Whether to set (true) or clear (false) thumbs up
+          schema:
+            type: string
+            enum:
+              - "true"
+              - "false"
+      responses:
+        "204":
+          description: Rating updated successfully
+        "400":
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/articles/{article_id}/thumbs_down/{thumbs_down}:
+    post:
+      tags:
+        - User Interactions
+      summary: Set thumbs down rating
+      description: Set or clear the thumbs down rating for an article.
+      operationId: setArticleThumbsDown
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: article_id
+          in: path
+          required: true
+          description: Article hash ID
+          schema:
+            type: string
+        - name: thumbs_down
+          in: path
+          required: true
+          description: Whether to set (true) or clear (false) thumbs down
+          schema:
+            type: string
+            enum:
+              - "true"
+              - "false"
+      responses:
+        "204":
+          description: Rating updated successfully
+        "400":
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/tokens:
+    get:
+      tags:
+        - API Tokens
+      summary: List API tokens
+      description: |
+        List all API tokens for the authenticated user.
+        Only available with Auth0 authentication (not API tokens).
+      operationId: listApiTokens
+      security:
+        - BearerAuth: []
+      responses:
+        "200":
+          description: List of API tokens
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiTokenListResponse"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: API token authentication not allowed for this endpoint
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    post:
+      tags:
+        - API Tokens
+      summary: Create API token
+      description: |
+        Create a new API token for the authenticated user.
+        Only available with Auth0 authentication (not API tokens).
+        Maximum 10 active tokens per user.
+      operationId: createApiToken
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateApiTokenRequest"
+      responses:
+        "201":
+          description: API token created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateApiTokenResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: API token authentication not allowed for this endpoint
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "409":
+          description: Maximum token limit reached
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /v1/tokens/{token_id}:
+    delete:
+      tags:
+        - API Tokens
+      summary: Revoke API token
+      description: |
+        Revoke an API token by its ID.
+        Only available with Auth0 authentication (not API tokens).
+      operationId: revokeApiToken
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: token_id
+          in: path
+          required: true
+          description: Token UUID to revoke
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Token revoked successfully
+        "400":
+          description: Invalid token ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "403":
+          description: API token authentication not allowed for this endpoint
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /rss:
+    get:
+      tags:
+        - RSS
+      summary: RSS feed
+      description: |
+        Get an RSS feed of alignment research articles.
+        Supports the same filtering parameters as the articles list endpoint.
+      operationId: getRssFeed
+      security:
+        - {}
+      parameters:
+        - name: page
+          in: query
+          description: Page number (1-indexed)
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          description: Number of articles per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+            default: 100
+        - name: sort
+          in: query
+          description: |
+            Comma-separated list of fields to sort by. Append `_desc` for descending order.
+            Valid fields: `published_at`, `authors`, `source`, `title`.
+          schema:
+            type: string
+            example: published_at_desc
+        - name: filter_sources_allowlist
+          in: query
+          description: Comma-separated list of source names to include
+          schema:
+            type: string
+        - name: filter_sources_blocklist
+          in: query
+          description: Comma-separated list of source names to exclude
+          schema:
+            type: string
+        - name: filter_title_fulltext
+          in: query
+          description: Full-text search in article titles
+          schema:
+            type: string
+        - name: filter_authors_fulltext
+          in: query
+          description: Full-text search in article authors
+          schema:
+            type: string
+        - name: filter_published_after
+          in: query
+          description: Include only articles published after this date
+          schema:
+            type: string
+            format: date-time
+        - name: filter_published_before
+          in: query
+          description: Include only articles published before this date
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: RSS feed
+          content:
+            application/rss+xml:
+              schema:
+                type: string
+            text/xml:
+              schema:
+                type: string
+        "400":
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: |
+        Authentication via Auth0 JWT or API token.
+
+        - **Auth0 JWT**: `Bearer auth0|<jwt_token>`
+        - **API Token**: `Bearer user_api|<token_hex>`
+
+        Some endpoints (token management) require Auth0 authentication only.
+
+  schemas:
+    Article:
+      type: object
+      required:
+        - hash_id
+        - title
+        - link
+        - source
+        - published_at
+      properties:
+        hash_id:
+          type: string
+          description: Unique identifier for the article
+          example: 8f14e45fceea167a5a36dedd4bea2543
+        title:
+          type: string
+          description: Article title
+          example: "Scaling Monosemanticity: Extracting Interpretable Features from Claude 3 Sonnet"
+        link:
+          type: string
+          format: uri
+          description: URL to the original article
+          example: https://arxiv.org/abs/2401.12345
+        text_start:
+          type: string
+          description: Preview text (first ~500 characters of the article)
+          example: "We apply sparse autoencoders to extract interpretable features..."
+        authors:
+          type: string
+          description: Comma-separated list of authors
+          example: "Jane Smith, John Doe"
+        source:
+          type: string
+          description: Source of the article
+          example: arxiv
+        published_at:
+          type: string
+          format: date-time
+          description: Publication date
+          example: "2024-01-15T10:30:00Z"
+        have_read:
+          type: boolean
+          description: Whether the authenticated user has marked this as read (only present when authenticated)
+        thumbs_up:
+          type: boolean
+          description: Whether the authenticated user has given this a thumbs up (only present when authenticated)
+        thumbs_down:
+          type: boolean
+          description: Whether the authenticated user has given this a thumbs down (only present when authenticated)
+
+    ArticlesListResponse:
+      type: object
+      required:
+        - data
+        - metadata
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Article"
+        metadata:
+          type: object
+          description: Response metadata (currently empty, reserved for future use)
+
+    ApiToken:
+      type: object
+      required:
+        - id
+        - prefix
+        - created_at
+        - revoked
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Token UUID
+        prefix:
+          type: string
+          description: First 8 characters of the token for identification
+          example: user_api
+        name:
+          type: string
+          description: Optional user-provided name for the token
+          example: "My CLI token"
+        created_at:
+          type: string
+          format: date-time
+          description: When the token was created
+        last_used_at:
+          type: string
+          format: date-time
+          description: When the token was last used (null if never used)
+        expires_at:
+          type: string
+          format: date-time
+          description: When the token expires (null if no expiration)
+        revoked:
+          type: boolean
+          description: Whether the token has been revoked
+
+    ApiTokenListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ApiToken"
+
+    CreateApiTokenRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Optional name for the token
+          example: "My CLI token"
+
+    CreateApiTokenResponse:
+      type: object
+      required:
+        - id
+        - token
+        - prefix
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Token UUID
+        token:
+          type: string
+          description: Full token value (only returned at creation time)
+          example: "user_api|a1b2c3d4e5f6..."
+        prefix:
+          type: string
+          description: Token prefix for identification
+          example: user_api
+
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "invalid page parameter: must be >= 1"
