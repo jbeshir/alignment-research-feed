@@ -65,6 +65,10 @@ lint:
 lint-openapi:
 	vacuum lint openapi/api.yaml
 
+.PHONY: build-openapi-docs
+build-openapi-docs:
+	npx @redocly/cli build-docs openapi/api.yaml -o openapi/index.html
+
 .PHONY: fmt
 fmt:
 	go fmt ./...
