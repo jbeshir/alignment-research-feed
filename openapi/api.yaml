@@ -215,6 +215,7 @@ paths:
         Search for articles semantically similar to the given text.
       operationId: semanticSearchArticles
       security:
+        - {}
         - BearerAuth: []
       requestBody:
         required: true
@@ -231,12 +232,6 @@ paths:
                 $ref: "#/components/schemas/ArticlesListResponse"
         "400":
           description: Invalid request (missing or empty text)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "401":
-          description: Authentication required
           content:
             application/json:
               schema:

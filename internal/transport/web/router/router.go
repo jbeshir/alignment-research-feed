@@ -54,11 +54,11 @@ func MakeRouter(
 		ListEntity: "disliked",
 	})).Methods(http.MethodGet, http.MethodOptions)
 
-	r.Handle("/v1/articles/semantic-search", requireAuthMiddleware(controller.SemanticSearch{
+	r.Handle("/v1/articles/semantic-search", controller.SemanticSearch{
 		Embedder:   embedder,
 		Similarity: similarity,
 		Fetcher:    dataset,
-	})).Methods(http.MethodPost, http.MethodOptions)
+	}).Methods(http.MethodPost, http.MethodOptions)
 
 	r.Handle("/v1/articles/{article_id}", controller.ArticleGet{
 		Fetcher:     dataset,
