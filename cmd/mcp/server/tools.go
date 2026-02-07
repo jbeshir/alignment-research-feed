@@ -91,6 +91,30 @@ func splitAndTrim(s string) []string {
 	return parts
 }
 
+func (s *Server) handleSemanticSearch(
+	ctx context.Context,
+	request mcp.CallToolRequest,
+) (*mcp.CallToolResult, error) {
+	args := request.Params.Arguments
+
+	text, ok := args["text"].(string)
+	if !ok || text == "" {
+		return mcp.NewToolResultError("text is required"), nil
+	}
+
+	limit := 10
+	if l, ok := args["limit"].(float64); ok && l > 0 {
+		limit = min(int(l), 100)
+	}
+
+	articles, err := s.client.SemanticSearch(ctx, text, limit)
+	if err != nil {
+		return mcp.NewToolResultError(fmt.Sprintf("failed to search articles: %v", err)), nil
+	}
+
+	return formatArticlesResult(articles)
+}
+
 func (s *Server) handleGetArticle(
 	ctx context.Context,
 	request mcp.CallToolRequest,
