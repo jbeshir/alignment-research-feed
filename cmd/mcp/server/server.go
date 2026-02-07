@@ -76,6 +76,21 @@ func (s *Server) registerTools() {
 		),
 	), s.handleGetArticle)
 
+	// semantic_search - Search by text similarity
+	s.mcpServer.AddTool(mcp.NewTool("semantic_search",
+		mcp.WithDescription(
+			"Search for articles semantically similar to the given text. "+
+				"Useful for finding related research by providing a snippet, abstract, or topic description."),
+		mcp.WithString("text",
+			mcp.Required(),
+			mcp.Description("The text to find semantically similar articles for (max 100KB)"),
+			mcp.MaxLength(102400),
+		),
+		mcp.WithNumber("limit",
+			mcp.Description("Maximum number of articles to return (default: 10, max: 100)"),
+		),
+	), s.handleSemanticSearch)
+
 	// get_similar_articles - Find similar articles
 	s.mcpServer.AddTool(mcp.NewTool("get_similar_articles",
 		mcp.WithDescription(

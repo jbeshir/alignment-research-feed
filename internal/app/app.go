@@ -9,6 +9,7 @@ import (
 	"github.com/jbeshir/alignment-research-feed/internal/datasources"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources/mysql"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources/pinecone"
+	"github.com/jbeshir/alignment-research-feed/internal/datasources/voyageai"
 	"github.com/jbeshir/alignment-research-feed/internal/transport/web/router"
 	"github.com/jbeshir/alignment-research-feed/internal/transport/web/server"
 )
@@ -26,6 +27,11 @@ func Setup(ctx context.Context) ([]Component, error) {
 	similarity, err := setupSimilarityRepository(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("setting up similarity repository: %w", err)
+	}
+
+	embedder, err := setupEmbedder(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("setting up embedder: %w", err)
 	}
 
 	authMiddleware, err := setupAuthMiddleware(ctx, dataset)
@@ -56,6 +62,7 @@ func Setup(ctx context.Context) ([]Component, error) {
 	httpRouter, err := router.MakeRouter(
 		dataset,
 		similarity,
+		embedder,
 		MustGetEnvAsString(ctx, "RSS_FEED_BASE_URL"),
 		MustGetEnvAsString(ctx, "RSS_FEED_AUTHOR_NAME"),
 		MustGetEnvAsString(ctx, "RSS_FEED_AUTHOR_EMAIL"),
@@ -102,6 +109,20 @@ func setupSimilarityRepository(ctx context.Context) (datasources.SimilarityRepos
 		return client, nil
 	default:
 		return nil, fmt.Errorf("unknown similarity driver [%s]", driver)
+	}
+}
+
+func setupEmbedder(ctx context.Context) (datasources.Embedder, error) {
+	switch driver := MustGetEnvAsString(ctx, "EMBEDDING_DRIVER"); driver {
+	case "null":
+		return datasources.NullEmbedder{}, nil
+	case "voyageai":
+		return voyageai.NewClient(
+			MustGetEnvAsString(ctx, "VOYAGEAI_API_KEY"),
+			MustGetEnvAsString(ctx, "VOYAGEAI_MODEL"),
+		), nil
+	default:
+		return nil, fmt.Errorf("unknown embedding driver [%s]", driver)
 	}
 }
 

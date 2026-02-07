@@ -13,6 +13,7 @@ import (
 func MakeRouter(
 	dataset datasources.DatasetRepository,
 	similarity datasources.SimilarityRepository,
+	embedder datasources.Embedder,
 	rssFeedBaseURL, rssFeedAuthorName, rssFeedAuthorEmail string,
 	latestCacheMaxAge time.Duration,
 	authMiddleware func(http.Handler) http.Handler,
@@ -52,6 +53,12 @@ func MakeRouter(
 		ListFunc:   dataset.ListDislikedArticleIDs,
 		ListEntity: "disliked",
 	})).Methods(http.MethodGet, http.MethodOptions)
+
+	r.Handle("/v1/articles/semantic-search", requireAuthMiddleware(controller.SemanticSearch{
+		Embedder:   embedder,
+		Similarity: similarity,
+		Fetcher:    dataset,
+	})).Methods(http.MethodPost, http.MethodOptions)
 
 	r.Handle("/v1/articles/{article_id}", controller.ArticleGet{
 		Fetcher:     dataset,

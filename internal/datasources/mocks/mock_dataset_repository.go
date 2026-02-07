@@ -26,6 +26,63 @@ func (_m *MockDatasetRepository) EXPECT() *MockDatasetRepository_Expecter {
 	return &MockDatasetRepository_Expecter{mock: &_m.Mock}
 }
 
+// CountUserActiveAPITokens provides a mock function with given fields: ctx, userID
+func (_m *MockDatasetRepository) CountUserActiveAPITokens(ctx context.Context, userID string) (int64, error) {
+	ret := _m.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CountUserActiveAPITokens")
+	}
+
+	var r0 int64
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (int64, error)); ok {
+		return rf(ctx, userID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) int64); ok {
+		r0 = rf(ctx, userID)
+	} else {
+		r0 = ret.Get(0).(int64)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDatasetRepository_CountUserActiveAPITokens_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CountUserActiveAPITokens'
+type MockDatasetRepository_CountUserActiveAPITokens_Call struct {
+	*mock.Call
+}
+
+// CountUserActiveAPITokens is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+func (_e *MockDatasetRepository_Expecter) CountUserActiveAPITokens(ctx interface{}, userID interface{}) *MockDatasetRepository_CountUserActiveAPITokens_Call {
+	return &MockDatasetRepository_CountUserActiveAPITokens_Call{Call: _e.mock.On("CountUserActiveAPITokens", ctx, userID)}
+}
+
+func (_c *MockDatasetRepository_CountUserActiveAPITokens_Call) Run(run func(ctx context.Context, userID string)) *MockDatasetRepository_CountUserActiveAPITokens_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockDatasetRepository_CountUserActiveAPITokens_Call) Return(_a0 int64, _a1 error) *MockDatasetRepository_CountUserActiveAPITokens_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDatasetRepository_CountUserActiveAPITokens_Call) RunAndReturn(run func(context.Context, string) (int64, error)) *MockDatasetRepository_CountUserActiveAPITokens_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CountUserArticleVectorsByType provides a mock function with given fields: ctx, userID, ratingType
 func (_m *MockDatasetRepository) CountUserArticleVectorsByType(ctx context.Context, userID string, ratingType domain.UserRatingType) (int64, error) {
 	ret := _m.Called(ctx, userID, ratingType)
@@ -80,6 +137,58 @@ func (_c *MockDatasetRepository_CountUserArticleVectorsByType_Call) Return(_a0 i
 }
 
 func (_c *MockDatasetRepository_CountUserArticleVectorsByType_Call) RunAndReturn(run func(context.Context, string, domain.UserRatingType) (int64, error)) *MockDatasetRepository_CountUserArticleVectorsByType_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateAPIToken provides a mock function with given fields: ctx, id, userID, tokenHash, tokenPrefix, name, expiresAt
+func (_m *MockDatasetRepository) CreateAPIToken(ctx context.Context, id string, userID string, tokenHash string, tokenPrefix string, name *string, expiresAt *time.Time) error {
+	ret := _m.Called(ctx, id, userID, tokenHash, tokenPrefix, name, expiresAt)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateAPIToken")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, *string, *time.Time) error); ok {
+		r0 = rf(ctx, id, userID, tokenHash, tokenPrefix, name, expiresAt)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatasetRepository_CreateAPIToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateAPIToken'
+type MockDatasetRepository_CreateAPIToken_Call struct {
+	*mock.Call
+}
+
+// CreateAPIToken is a helper method to define mock.On call
+//   - ctx context.Context
+//   - id string
+//   - userID string
+//   - tokenHash string
+//   - tokenPrefix string
+//   - name *string
+//   - expiresAt *time.Time
+func (_e *MockDatasetRepository_Expecter) CreateAPIToken(ctx interface{}, id interface{}, userID interface{}, tokenHash interface{}, tokenPrefix interface{}, name interface{}, expiresAt interface{}) *MockDatasetRepository_CreateAPIToken_Call {
+	return &MockDatasetRepository_CreateAPIToken_Call{Call: _e.mock.On("CreateAPIToken", ctx, id, userID, tokenHash, tokenPrefix, name, expiresAt)}
+}
+
+func (_c *MockDatasetRepository_CreateAPIToken_Call) Run(run func(ctx context.Context, id string, userID string, tokenHash string, tokenPrefix string, name *string, expiresAt *time.Time)) *MockDatasetRepository_CreateAPIToken_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(string), args[5].(*string), args[6].(*time.Time))
+	})
+	return _c
+}
+
+func (_c *MockDatasetRepository_CreateAPIToken_Call) Return(_a0 error) *MockDatasetRepository_CreateAPIToken_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatasetRepository_CreateAPIToken_Call) RunAndReturn(run func(context.Context, string, string, string, string, *string, *time.Time) error) *MockDatasetRepository_CreateAPIToken_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -233,6 +342,63 @@ func (_c *MockDatasetRepository_FetchArticlesByID_Call) Return(_a0 []domain.Arti
 }
 
 func (_c *MockDatasetRepository_FetchArticlesByID_Call) RunAndReturn(run func(context.Context, []string) ([]domain.Article, error)) *MockDatasetRepository_FetchArticlesByID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetAPITokenByHash provides a mock function with given fields: ctx, tokenHash
+func (_m *MockDatasetRepository) GetAPITokenByHash(ctx context.Context, tokenHash string) (domain.APIToken, error) {
+	ret := _m.Called(ctx, tokenHash)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAPITokenByHash")
+	}
+
+	var r0 domain.APIToken
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) (domain.APIToken, error)); ok {
+		return rf(ctx, tokenHash)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) domain.APIToken); ok {
+		r0 = rf(ctx, tokenHash)
+	} else {
+		r0 = ret.Get(0).(domain.APIToken)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, tokenHash)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDatasetRepository_GetAPITokenByHash_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAPITokenByHash'
+type MockDatasetRepository_GetAPITokenByHash_Call struct {
+	*mock.Call
+}
+
+// GetAPITokenByHash is a helper method to define mock.On call
+//   - ctx context.Context
+//   - tokenHash string
+func (_e *MockDatasetRepository_Expecter) GetAPITokenByHash(ctx interface{}, tokenHash interface{}) *MockDatasetRepository_GetAPITokenByHash_Call {
+	return &MockDatasetRepository_GetAPITokenByHash_Call{Call: _e.mock.On("GetAPITokenByHash", ctx, tokenHash)}
+}
+
+func (_c *MockDatasetRepository_GetAPITokenByHash_Call) Run(run func(ctx context.Context, tokenHash string)) *MockDatasetRepository_GetAPITokenByHash_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockDatasetRepository_GetAPITokenByHash_Call) Return(_a0 domain.APIToken, _a1 error) *MockDatasetRepository_GetAPITokenByHash_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDatasetRepository_GetAPITokenByHash_Call) RunAndReturn(run func(context.Context, string) (domain.APIToken, error)) *MockDatasetRepository_GetAPITokenByHash_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -891,6 +1057,65 @@ func (_c *MockDatasetRepository_ListUnreviewedArticleIDs_Call) RunAndReturn(run 
 	return _c
 }
 
+// ListUserAPITokens provides a mock function with given fields: ctx, userID
+func (_m *MockDatasetRepository) ListUserAPITokens(ctx context.Context, userID string) ([]domain.APIToken, error) {
+	ret := _m.Called(ctx, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ListUserAPITokens")
+	}
+
+	var r0 []domain.APIToken
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) ([]domain.APIToken, error)); ok {
+		return rf(ctx, userID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string) []domain.APIToken); ok {
+		r0 = rf(ctx, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]domain.APIToken)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockDatasetRepository_ListUserAPITokens_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ListUserAPITokens'
+type MockDatasetRepository_ListUserAPITokens_Call struct {
+	*mock.Call
+}
+
+// ListUserAPITokens is a helper method to define mock.On call
+//   - ctx context.Context
+//   - userID string
+func (_e *MockDatasetRepository_Expecter) ListUserAPITokens(ctx interface{}, userID interface{}) *MockDatasetRepository_ListUserAPITokens_Call {
+	return &MockDatasetRepository_ListUserAPITokens_Call{Call: _e.mock.On("ListUserAPITokens", ctx, userID)}
+}
+
+func (_c *MockDatasetRepository_ListUserAPITokens_Call) Run(run func(ctx context.Context, userID string)) *MockDatasetRepository_ListUserAPITokens_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockDatasetRepository_ListUserAPITokens_Call) Return(_a0 []domain.APIToken, _a1 error) *MockDatasetRepository_ListUserAPITokens_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockDatasetRepository_ListUserAPITokens_Call) RunAndReturn(run func(context.Context, string) ([]domain.APIToken, error)) *MockDatasetRepository_ListUserAPITokens_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // ListUsersNeedingRegeneration provides a mock function with given fields: ctx
 func (_m *MockDatasetRepository) ListUsersNeedingRegeneration(ctx context.Context) ([]string, error) {
 	ret := _m.Called(ctx)
@@ -1043,6 +1268,54 @@ func (_c *MockDatasetRepository_MarkUserRegenerated_Call) RunAndReturn(run func(
 	return _c
 }
 
+// RevokeAPIToken provides a mock function with given fields: ctx, tokenID, userID
+func (_m *MockDatasetRepository) RevokeAPIToken(ctx context.Context, tokenID string, userID string) error {
+	ret := _m.Called(ctx, tokenID, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RevokeAPIToken")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = rf(ctx, tokenID, userID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatasetRepository_RevokeAPIToken_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RevokeAPIToken'
+type MockDatasetRepository_RevokeAPIToken_Call struct {
+	*mock.Call
+}
+
+// RevokeAPIToken is a helper method to define mock.On call
+//   - ctx context.Context
+//   - tokenID string
+//   - userID string
+func (_e *MockDatasetRepository_Expecter) RevokeAPIToken(ctx interface{}, tokenID interface{}, userID interface{}) *MockDatasetRepository_RevokeAPIToken_Call {
+	return &MockDatasetRepository_RevokeAPIToken_Call{Call: _e.mock.On("RevokeAPIToken", ctx, tokenID, userID)}
+}
+
+func (_c *MockDatasetRepository_RevokeAPIToken_Call) Run(run func(ctx context.Context, tokenID string, userID string)) *MockDatasetRepository_RevokeAPIToken_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockDatasetRepository_RevokeAPIToken_Call) Return(_a0 error) *MockDatasetRepository_RevokeAPIToken_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatasetRepository_RevokeAPIToken_Call) RunAndReturn(run func(context.Context, string, string) error) *MockDatasetRepository_RevokeAPIToken_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // SetArticleRating provides a mock function with given fields: ctx, userID, articleHashID, thumbsUp, thumbsDown, vector
 func (_m *MockDatasetRepository) SetArticleRating(ctx context.Context, userID string, articleHashID string, thumbsUp bool, thumbsDown bool, vector []float32) error {
 	ret := _m.Called(ctx, userID, articleHashID, thumbsUp, thumbsDown, vector)
@@ -1139,6 +1412,53 @@ func (_c *MockDatasetRepository_SetArticleRead_Call) Return(_a0 error) *MockData
 }
 
 func (_c *MockDatasetRepository_SetArticleRead_Call) RunAndReturn(run func(context.Context, string, string, bool) error) *MockDatasetRepository_SetArticleRead_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateAPITokenLastUsed provides a mock function with given fields: ctx, tokenID
+func (_m *MockDatasetRepository) UpdateAPITokenLastUsed(ctx context.Context, tokenID string) error {
+	ret := _m.Called(ctx, tokenID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateAPITokenLastUsed")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string) error); ok {
+		r0 = rf(ctx, tokenID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockDatasetRepository_UpdateAPITokenLastUsed_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateAPITokenLastUsed'
+type MockDatasetRepository_UpdateAPITokenLastUsed_Call struct {
+	*mock.Call
+}
+
+// UpdateAPITokenLastUsed is a helper method to define mock.On call
+//   - ctx context.Context
+//   - tokenID string
+func (_e *MockDatasetRepository_Expecter) UpdateAPITokenLastUsed(ctx interface{}, tokenID interface{}) *MockDatasetRepository_UpdateAPITokenLastUsed_Call {
+	return &MockDatasetRepository_UpdateAPITokenLastUsed_Call{Call: _e.mock.On("UpdateAPITokenLastUsed", ctx, tokenID)}
+}
+
+func (_c *MockDatasetRepository_UpdateAPITokenLastUsed_Call) Run(run func(ctx context.Context, tokenID string)) *MockDatasetRepository_UpdateAPITokenLastUsed_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockDatasetRepository_UpdateAPITokenLastUsed_Call) Return(_a0 error) *MockDatasetRepository_UpdateAPITokenLastUsed_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockDatasetRepository_UpdateAPITokenLastUsed_Call) RunAndReturn(run func(context.Context, string) error) *MockDatasetRepository_UpdateAPITokenLastUsed_Call {
 	_c.Call.Return(run)
 	return _c
 }

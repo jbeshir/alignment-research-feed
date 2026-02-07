@@ -2,6 +2,7 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -64,7 +65,11 @@ func NewClient(baseURL, apiToken string) *Client {
 }
 
 func (c *Client) doRequest(ctx context.Context, method, path string) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, nil)
+	return c.doRequestWithBody(ctx, method, path, nil)
+}
+
+func (c *Client) doRequestWithBody(ctx context.Context, method, path string, body io.Reader) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, body)
 	if err != nil {
 		return nil, fmt.Errorf("creating request: %w", err)
 	}
@@ -73,6 +78,9 @@ func (c *Client) doRequest(ctx context.Context, method, path string) (*http.Resp
 		req.Header.Set("Authorization", "Bearer "+c.apiToken)
 	}
 	req.Header.Set("Accept", "application/json")
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -176,6 +184,34 @@ func (c *Client) GetSimilarArticles(ctx context.Context, articleID string, limit
 	}
 
 	resp, err := c.doRequest(ctx, http.MethodGet, path)
+	if err != nil {
+		return nil, err
+	}
+
+	var result ArticlesResponse
+	if err := c.handleResponse(resp, &result); err != nil {
+		return nil, err
+	}
+
+	return result.Data, nil
+}
+
+// SemanticSearch finds articles semantically similar to the given text.
+func (c *Client) SemanticSearch(ctx context.Context, text string, limit int) ([]Article, error) {
+	reqBody := struct {
+		Text  string `json:"text"`
+		Limit int    `json:"limit"`
+	}{
+		Text:  text,
+		Limit: limit,
+	}
+
+	jsonBody, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, fmt.Errorf("marshalling request: %w", err)
+	}
+
+	resp, err := c.doRequestWithBody(ctx, http.MethodPost, "/v1/articles/semantic-search", bytes.NewReader(jsonBody))
 	if err != nil {
 		return nil, err
 	}

@@ -206,6 +206,54 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /v1/articles/semantic-search:
+    post:
+      tags:
+        - Articles
+      summary: Semantic search
+      description: |
+        Search for articles semantically similar to the given text.
+      operationId: semanticSearchArticles
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SemanticSearchRequest"
+      responses:
+        "200":
+          description: List of semantically similar articles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ArticlesListResponse"
+        "400":
+          description: Invalid request (missing or empty text)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "503":
+          description: Embedding service unavailable (null driver configured)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /v1/articles/recommended:
     get:
       tags:
@@ -918,6 +966,23 @@ components:
           type: string
           description: Token prefix for identification
           example: user_api
+
+    SemanticSearchRequest:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+          description: Text to find semantically similar articles for
+          maxLength: 102400
+          example: "Interpretability methods for large language models"
+        limit:
+          type: integer
+          description: Maximum number of articles to return
+          minimum: 1
+          maximum: 100
+          default: 10
 
     Error:
       type: object
