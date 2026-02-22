@@ -23,9 +23,15 @@ type Article struct {
 	Authors     string    `json:"authors"`
 	Source      string    `json:"source"`
 	PublishedAt time.Time `json:"published_at"`
-	HaveRead    *bool     `json:"have_read,omitempty"`
-	ThumbsUp    *bool     `json:"thumbs_up,omitempty"`
-	ThumbsDown  *bool     `json:"thumbs_down,omitempty"`
+
+	Summary     string   `json:"summary,omitempty"`
+	KeyPoints   []string `json:"key_points,omitempty"`
+	Implication string   `json:"implication,omitempty"`
+	Category    string   `json:"category,omitempty"`
+
+	HaveRead   *bool `json:"have_read,omitempty"`
+	ThumbsUp   *bool `json:"thumbs_up,omitempty"`
+	ThumbsDown *bool `json:"thumbs_down,omitempty"`
 }
 
 // ArticlesResponse represents the paginated response for article lists.
@@ -44,6 +50,7 @@ type SearchFilters struct {
 	Limit           int
 	Page            int
 	Sort            string
+	Category        string
 }
 
 // Client is an HTTP client for the Alignment Research Feed API.
@@ -107,36 +114,45 @@ func (c *Client) handleResponse(resp *http.Response, result interface{}) error {
 	return nil
 }
 
-// SearchArticles searches for articles with the given filters.
-func (c *Client) SearchArticles(ctx context.Context, filters SearchFilters) ([]Article, error) {
+func (f SearchFilters) queryParams() url.Values {
 	params := url.Values{}
 
-	if filters.Query != "" {
-		params.Set("filter_title_fulltext", filters.Query)
+	if f.Query != "" {
+		params.Set("filter_title_fulltext", f.Query)
 	}
-	if len(filters.Sources) > 0 {
-		params.Set("filter_sources_allowlist", strings.Join(filters.Sources, ","))
+	if len(f.Sources) > 0 {
+		params.Set("filter_sources_allowlist", strings.Join(f.Sources, ","))
 	}
-	if len(filters.ExcludeSources) > 0 {
-		params.Set("filter_sources_blocklist", strings.Join(filters.ExcludeSources, ","))
+	if len(f.ExcludeSources) > 0 {
+		params.Set("filter_sources_blocklist", strings.Join(f.ExcludeSources, ","))
 	}
-	if filters.PublishedAfter != nil {
-		params.Set("filter_published_after", filters.PublishedAfter.Format(time.RFC3339))
+	if f.PublishedAfter != nil {
+		params.Set("filter_published_after", f.PublishedAfter.Format(time.RFC3339))
 	}
-	if filters.PublishedBefore != nil {
-		params.Set("filter_published_before", filters.PublishedBefore.Format(time.RFC3339))
+	if f.PublishedBefore != nil {
+		params.Set("filter_published_before", f.PublishedBefore.Format(time.RFC3339))
 	}
-	if filters.Limit > 0 {
-		params.Set("page_size", strconv.Itoa(filters.Limit))
+	if f.Limit > 0 {
+		params.Set("page_size", strconv.Itoa(f.Limit))
 	}
-	if filters.Page > 0 {
-		params.Set("page", strconv.Itoa(filters.Page))
+	if f.Page > 0 {
+		params.Set("page", strconv.Itoa(f.Page))
 	}
-	if filters.Sort != "" {
-		params.Set("sort", filters.Sort)
+	if f.Category != "" {
+		params.Set("filter_category", f.Category)
+	}
+	if f.Sort != "" {
+		params.Set("sort", f.Sort)
 	} else {
 		params.Set("sort", "published_at_desc")
 	}
+
+	return params
+}
+
+// SearchArticles searches for articles with the given filters.
+func (c *Client) SearchArticles(ctx context.Context, filters SearchFilters) ([]Article, error) {
+	params := filters.queryParams()
 
 	path := "/v1/articles"
 	if len(params) > 0 {

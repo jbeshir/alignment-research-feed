@@ -93,6 +93,10 @@ type Article struct {
 	// Describes the confidence in how good this article is, as a value <0, 1>
 	Confidence     sql.NullFloat64
 	PineconeStatus ArticlesPineconeStatus
+	Summary        sql.NullString
+	KeyPoints      sql.NullString
+	Implication    sql.NullString
+	Category       sql.NullString
 }
 
 type Summary struct {

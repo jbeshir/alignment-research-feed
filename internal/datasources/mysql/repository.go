@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/binary"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
@@ -249,6 +250,11 @@ func (r *Repository) FetchArticlesByID(
 			thumbsDown = &dbArticle.ThumbsDown.Bool
 		}
 
+		var keyPoints []string
+		if dbArticle.KeyPoints.Valid && dbArticle.KeyPoints.String != "" {
+			_ = json.Unmarshal([]byte(dbArticle.KeyPoints.String), &keyPoints)
+		}
+
 		articleMap[dbArticle.HashID] = domain.Article{
 			HashID:      dbArticle.HashID,
 			Title:       dbArticle.Title.String,
@@ -257,6 +263,10 @@ func (r *Repository) FetchArticlesByID(
 			Authors:     dbArticle.Authors,
 			Source:      dbArticle.Source.String,
 			PublishedAt: dbArticle.DatePublished.Time,
+			Summary:     dbArticle.Summary.String,
+			KeyPoints:   keyPoints,
+			Implication: dbArticle.Implication.String,
+			Category:    dbArticle.Category.String,
 			HaveRead:    haveRead,
 			ThumbsUp:    thumbsUp,
 			ThumbsDown:  thumbsDown,
@@ -325,6 +335,10 @@ func buildArticlesConditions(sb *sqlbuilder.SelectBuilder, filters domain.Articl
 
 		cond := sb.In("source", allowed...)
 		conds = append(conds, cond)
+	}
+
+	if filters.Category != "" {
+		conds = append(conds, sb.Equal("category", filters.Category))
 	}
 
 	if len(filters.SourcesBlocklist) > 0 {

@@ -13,6 +13,11 @@ type Article struct {
 	Source      string    `json:"source"`
 	PublishedAt time.Time `json:"published_at"`
 
+	Summary     string   `json:"summary,omitempty"`
+	KeyPoints   []string `json:"key_points,omitempty"`
+	Implication string   `json:"implication,omitempty"`
+	Category    string   `json:"category,omitempty"`
+
 	HaveRead   *bool `json:"have_read,omitempty"`
 	ThumbsUp   *bool `json:"thumbs_up,omitempty"`
 	ThumbsDown *bool `json:"thumbs_down,omitempty"`
@@ -29,6 +34,7 @@ type ArticleFilters struct {
 	PublishedBefore  time.Time
 	TitleFulltext    string
 	AuthorsFulltext  string
+	Category         string
 }
 
 type ArticleListOptions struct {

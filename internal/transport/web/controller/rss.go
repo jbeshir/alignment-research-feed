@@ -125,6 +125,10 @@ func articleFiltersFromQuery(q url.Values) (domain.ArticleFilters, error) {
 		filters.AuthorsFulltext = v
 	}
 
+	if v := q.Get("filter_category"); v != "" {
+		filters.Category = v
+	}
+
 	if v := q.Get("filter_published_after"); v != "" {
 		parsed, err := time.Parse(time.RFC3339, v)
 		if err != nil {

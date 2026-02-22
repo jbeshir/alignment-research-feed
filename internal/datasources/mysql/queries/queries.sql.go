@@ -110,6 +110,10 @@ SELECT
     LEFT(COALESCE(text, ''), 500) as text_start,
     authors,
     date_published,
+    summary,
+    key_points,
+    implication,
+    category,
     have_read,
     thumbs_up,
     thumbs_down
@@ -133,6 +137,10 @@ type FetchArticlesByIDRow struct {
 	TextStart     string
 	Authors       string
 	DatePublished sql.NullTime
+	Summary       sql.NullString
+	KeyPoints     sql.NullString
+	Implication   sql.NullString
+	Category      sql.NullString
 	HaveRead      sql.NullBool
 	ThumbsUp      sql.NullBool
 	ThumbsDown    sql.NullBool
@@ -166,6 +174,10 @@ func (q *Queries) FetchArticlesByID(ctx context.Context, arg FetchArticlesByIDPa
 			&i.TextStart,
 			&i.Authors,
 			&i.DatePublished,
+			&i.Summary,
+			&i.KeyPoints,
+			&i.Implication,
+			&i.Category,
 			&i.HaveRead,
 			&i.ThumbsUp,
 			&i.ThumbsDown,

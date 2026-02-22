@@ -88,6 +88,24 @@ paths:
           description: Full-text search in article authors
           schema:
             type: string
+        - name: filter_category
+          in: query
+          description: |
+            Filter by LLM-assigned category. Current categories are listed in the
+            schema enum; more may be added over time.
+          schema:
+            type: string
+            enum:
+              - Interpretability
+              - Alignment Theory
+              - Governance
+              - Technical Safety
+              - AI Ethics
+              - Capabilities
+              - Forecasting
+              - Field Building
+              - Other
+            example: Interpretability
         - name: filter_published_after
           in: query
           description: Include only articles published after this date
@@ -870,6 +888,24 @@ components:
         thumbs_up:
           type: boolean
           description: Whether the authenticated user has given this a thumbs up (only present when authenticated)
+        summary:
+          type: string
+          description: LLM-generated 1-3 sentence summary
+        key_points:
+          type: array
+          items:
+            type: string
+          description: LLM-generated key takeaways (3-5 points)
+        implication:
+          type: string
+          description: LLM-generated implication for AI alignment
+        category:
+          type: string
+          description: |
+            LLM-assigned category. Current categories: Interpretability,
+            Alignment Theory, Governance, Technical Safety, AI Ethics,
+            Capabilities, Forecasting, Field Building, Other.
+            More may be added over time.
         thumbs_down:
           type: boolean
           description: Whether the authenticated user has given this a thumbs down (only present when authenticated)

@@ -18,7 +18,8 @@ func (s *Server) registerResources() {
 			mcp.WithTemplateDescription(
 				"Fetch a specific article by its hash_id. Use this to get full "+
 					"article details including title, authors, link, source, "+
-					"and publication date."),
+					"publication date, and LLM-generated analysis (summary, "+
+					"key points, implication, and category)."),
 			mcp.WithTemplateMIMEType("application/json"),
 		),
 		s.handleArticleResource,
