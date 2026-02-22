@@ -20,6 +20,10 @@ SELECT
     LEFT(COALESCE(text, ''), 500) as text_start,
     authors,
     date_published,
+    summary,
+    key_points,
+    implication,
+    category,
     have_read,
     thumbs_up,
     thumbs_down

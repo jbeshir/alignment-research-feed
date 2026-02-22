@@ -870,6 +870,20 @@ components:
         thumbs_up:
           type: boolean
           description: Whether the authenticated user has given this a thumbs up (only present when authenticated)
+        summary:
+          type: string
+          description: LLM-generated 1-3 sentence summary
+        key_points:
+          type: array
+          items:
+            type: string
+          description: LLM-generated key takeaways (3-5 points)
+        implication:
+          type: string
+          description: LLM-generated implication for AI alignment
+        category:
+          type: string
+          description: LLM-assigned category tag
         thumbs_down:
           type: boolean
           description: Whether the authenticated user has given this a thumbs down (only present when authenticated)
