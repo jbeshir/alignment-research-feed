@@ -34,6 +34,7 @@ type ArticleFilters struct {
 	PublishedBefore  time.Time
 	TitleFulltext    string
 	AuthorsFulltext  string
+	Category         string
 }
 
 type ArticleListOptions struct {

@@ -65,11 +65,22 @@ func (s *Server) registerTools() {
 		mcp.WithNumber("page",
 			mcp.Description("Page number for pagination (1-indexed, default: 1)"),
 		),
+		mcp.WithString("category",
+			mcp.Description(
+				"Filter by LLM-assigned category. Current categories: "+
+					"Interpretability, Alignment Theory, Governance, "+
+					"Technical Safety, AI Ethics, Capabilities, "+
+					"Forecasting, Field Building, Other. "+
+					"More may be added over time."),
+		),
 	), s.handleSearchArticles)
 
 	// get_article - Get full article details
 	s.mcpServer.AddTool(mcp.NewTool("get_article",
-		mcp.WithDescription("Get full details of a specific article by its ID (hash_id)."),
+		mcp.WithDescription(
+			"Get full details of a specific article by its ID (hash_id). "+
+				"Includes LLM-generated analysis when available: summary, "+
+				"key points, implication, and category."),
 		mcp.WithString("article_id",
 			mcp.Required(),
 			mcp.Description("The hash_id of the article to retrieve"),

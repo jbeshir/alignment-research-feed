@@ -54,6 +54,9 @@ func parseStringFilters(args map[string]any, filters *client.SearchFilters) {
 	if excludeSources, ok := args["exclude_sources"].(string); ok && excludeSources != "" {
 		filters.ExcludeSources = splitAndTrim(excludeSources)
 	}
+	if category, ok := args["category"].(string); ok && category != "" {
+		filters.Category = category
+	}
 }
 
 func parseDateFilters(args map[string]any, filters *client.SearchFilters) error {

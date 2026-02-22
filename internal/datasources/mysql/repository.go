@@ -337,6 +337,10 @@ func buildArticlesConditions(sb *sqlbuilder.SelectBuilder, filters domain.Articl
 		conds = append(conds, cond)
 	}
 
+	if filters.Category != "" {
+		conds = append(conds, sb.Equal("category", filters.Category))
+	}
+
 	if len(filters.SourcesBlocklist) > 0 {
 		blocked := make([]interface{}, 0, len(filters.SourcesBlocklist))
 		for _, source := range filters.SourcesBlocklist {
