@@ -11,7 +11,7 @@ require (
 	github.com/huandu/go-sqlbuilder v1.35.0
 	github.com/joho/godotenv v1.5.1
 	github.com/mark3labs/mcp-go v0.28.0
-	github.com/pinecone-io/go-pinecone v1.1.1
+	github.com/pinecone-io/go-pinecone/v3 v3.1.0
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/crypto v0.45.0
 	golang.org/x/sync v0.18.0

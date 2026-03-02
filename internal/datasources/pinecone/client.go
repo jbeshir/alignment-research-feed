@@ -7,7 +7,7 @@ import (
 
 	"github.com/jbeshir/alignment-research-feed/internal/datasources"
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
-	"github.com/pinecone-io/go-pinecone/pinecone"
+	"github.com/pinecone-io/go-pinecone/v3/pinecone"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -246,7 +246,9 @@ func (c *Client) isDuplicate(hashID string, results []domain.SimilarArticle) boo
 func averagePineconeVectors(vectors map[string]*pinecone.Vector) []float32 {
 	var values [][]float32
 	for _, vector := range vectors {
-		values = append(values, vector.Values)
+		if vector.Values != nil {
+			values = append(values, *vector.Values)
+		}
 	}
 	return averageVectors(values)
 }
