@@ -68,9 +68,10 @@ func (s *Server) registerTools() {
 		mcp.WithString("category",
 			mcp.Description(
 				"Filter by LLM-assigned category. Current categories: "+
-					"Interpretability, Alignment Theory, Governance, "+
-					"Technical Safety, AI Ethics, Capabilities, "+
-					"Forecasting, Field Building, Other. "+
+					"Interpretability, Safety Techniques, Governance & Policy, "+
+					"Deception & Misalignment, AI Capabilities & Behavior, "+
+					"Risks & Strategy, Forecasting, AI & Society, "+
+					"Field Building, Other. "+
 					"More may be added over time."),
 		),
 	), s.handleSearchArticles)

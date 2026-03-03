@@ -97,12 +97,13 @@ paths:
             type: string
             enum:
               - Interpretability
-              - Alignment Theory
-              - Governance
-              - Technical Safety
-              - AI Ethics
-              - Capabilities
+              - Safety Techniques
+              - Governance & Policy
+              - Deception & Misalignment
+              - AI Capabilities & Behavior
+              - Risks & Strategy
               - Forecasting
+              - AI & Society
               - Field Building
               - Other
             example: Interpretability
@@ -903,8 +904,9 @@ components:
           type: string
           description: |
             LLM-assigned category. Current categories: Interpretability,
-            Alignment Theory, Governance, Technical Safety, AI Ethics,
-            Capabilities, Forecasting, Field Building, Other.
+            Safety Techniques, Governance & Policy, Deception & Misalignment,
+            AI Capabilities & Behavior, Risks & Strategy, Forecasting,
+            AI & Society, Field Building, Other.
             More may be added over time.
         thumbs_down:
           type: boolean
