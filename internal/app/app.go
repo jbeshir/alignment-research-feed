@@ -120,6 +120,7 @@ func setupEmbedder(ctx context.Context) (datasources.Embedder, error) {
 		return voyageai.NewClient(
 			MustGetEnvAsString(ctx, "VOYAGEAI_API_KEY"),
 			MustGetEnvAsString(ctx, "VOYAGEAI_MODEL"),
+			MustGetEnvAsInt(ctx, "VOYAGEAI_OUTPUT_DIMENSION"),
 		), nil
 	default:
 		return nil, fmt.Errorf("unknown embedding driver [%s]", driver)

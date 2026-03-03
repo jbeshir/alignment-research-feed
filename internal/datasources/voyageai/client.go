@@ -15,17 +15,19 @@ var _ datasources.Embedder = (*Client)(nil)
 
 // Client embeds text using the VoyageAI contextual embeddings API.
 type Client struct {
-	apiKey     string
-	model      string
-	httpClient *http.Client
+	apiKey          string
+	model           string
+	outputDimension int
+	httpClient      *http.Client
 }
 
 // NewClient creates a new VoyageAI client.
-func NewClient(apiKey, model string) *Client {
+func NewClient(apiKey, model string, outputDimension int) *Client {
 	return &Client{
-		apiKey:     apiKey,
-		model:      model,
-		httpClient: http.DefaultClient,
+		apiKey:          apiKey,
+		model:           model,
+		outputDimension: outputDimension,
+		httpClient:      http.DefaultClient,
 	}
 }
 
@@ -49,7 +51,7 @@ func (c *Client) EmbedText(ctx context.Context, text string) ([]float32, error) 
 		Inputs:          [][]string{{text}},
 		Model:           c.model,
 		InputType:       "query",
-		OutputDimension: 1024,
+		OutputDimension: c.outputDimension,
 	}
 
 	jsonBody, err := json.Marshal(reqBody)
