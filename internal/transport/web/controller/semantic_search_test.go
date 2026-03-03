@@ -44,13 +44,13 @@ func TestSemanticSearch_ServeHTTP(t *testing.T) {
 				{HashID: "hash2", Score: 0.8},
 			},
 			articles: []domain.Article{
-				{HashID: "hash1", Title: "Article 1", PublishedAt: testTime},
-				{HashID: "hash2", Title: "Article 2", PublishedAt: testTime},
+				{HashID: "hash1", Title: "Article 1", PublishedAt: &testTime},
+				{HashID: "hash2", Title: "Article 2", PublishedAt: &testTime},
 			},
 			wantStatus: http.StatusOK,
 			wantArticles: []domain.Article{
-				{HashID: "hash1", Title: "Article 1", PublishedAt: testTime},
-				{HashID: "hash2", Title: "Article 2", PublishedAt: testTime},
+				{HashID: "hash1", Title: "Article 1", PublishedAt: &testTime},
+				{HashID: "hash2", Title: "Article 2", PublishedAt: &testTime},
 			},
 		},
 		{
@@ -111,11 +111,11 @@ func TestSemanticSearch_ServeHTTP(t *testing.T) {
 				{HashID: "hash1", Score: 0.9},
 			},
 			articles: []domain.Article{
-				{HashID: "hash1", Title: "Article 1", PublishedAt: testTime},
+				{HashID: "hash1", Title: "Article 1", PublishedAt: &testTime},
 			},
 			wantStatus: http.StatusOK,
 			wantArticles: []domain.Article{
-				{HashID: "hash1", Title: "Article 1", PublishedAt: testTime},
+				{HashID: "hash1", Title: "Article 1", PublishedAt: &testTime},
 			},
 		},
 	}

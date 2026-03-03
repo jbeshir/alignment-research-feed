@@ -5,13 +5,13 @@ import (
 )
 
 type Article struct {
-	HashID      string    `json:"hash_id"`
-	Title       string    `json:"title"`
-	Link        string    `json:"link"`
-	TextStart   string    `json:"text_start"`
-	Authors     string    `json:"authors"`
-	Source      string    `json:"source"`
-	PublishedAt time.Time `json:"published_at"`
+	HashID      string     `json:"hash_id"`
+	Title       string     `json:"title"`
+	Link        string     `json:"link"`
+	TextStart   string     `json:"text_start"`
+	Authors     string     `json:"authors"`
+	Source      string     `json:"source"`
+	PublishedAt *time.Time `json:"published_at"`
 
 	Summary     string   `json:"summary,omitempty"`
 	KeyPoints   []string `json:"key_points,omitempty"`

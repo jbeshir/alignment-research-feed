@@ -59,14 +59,14 @@ func TestArticlesList_ServeHTTP(t *testing.T) {
 			setupContext: testContext(),
 			articleIDs:   []string{"hash1", "hash2"},
 			articles: []domain.Article{
-				{HashID: "hash1", Title: "Article 1", PublishedAt: testTime},
-				{HashID: "hash2", Title: "Article 2", PublishedAt: testTime},
+				{HashID: "hash1", Title: "Article 1", PublishedAt: &testTime},
+				{HashID: "hash2", Title: "Article 2", PublishedAt: &testTime},
 			},
 			wantStatus:    http.StatusOK,
 			wantCacheCtrl: "max-age=3600",
 			wantArticles: []domain.Article{
-				{HashID: "hash1", Title: "Article 1", PublishedAt: testTime},
-				{HashID: "hash2", Title: "Article 2", PublishedAt: testTime},
+				{HashID: "hash1", Title: "Article 1", PublishedAt: &testTime},
+				{HashID: "hash2", Title: "Article 2", PublishedAt: &testTime},
 			},
 		},
 		{
@@ -75,12 +75,12 @@ func TestArticlesList_ServeHTTP(t *testing.T) {
 			setupContext: testContextWithUserID("user123"),
 			articleIDs:   []string{"hash1"},
 			articles: []domain.Article{
-				{HashID: "hash1", Title: "Article 1", PublishedAt: testTime},
+				{HashID: "hash1", Title: "Article 1", PublishedAt: &testTime},
 			},
 			wantStatus:    http.StatusOK,
 			wantCacheCtrl: "",
 			wantArticles: []domain.Article{
-				{HashID: "hash1", Title: "Article 1", PublishedAt: testTime},
+				{HashID: "hash1", Title: "Article 1", PublishedAt: &testTime},
 			},
 		},
 		{
@@ -99,12 +99,12 @@ func TestArticlesList_ServeHTTP(t *testing.T) {
 			setupContext: testContext(),
 			articleIDs:   []string{"hash1"},
 			articles: []domain.Article{
-				{HashID: "hash1", Title: "Article 1", Source: "lesswrong", PublishedAt: testTime},
+				{HashID: "hash1", Title: "Article 1", Source: "lesswrong", PublishedAt: &testTime},
 			},
 			wantStatus:    http.StatusOK,
 			wantCacheCtrl: "max-age=3600",
 			wantArticles: []domain.Article{
-				{HashID: "hash1", Title: "Article 1", Source: "lesswrong", PublishedAt: testTime},
+				{HashID: "hash1", Title: "Article 1", Source: "lesswrong", PublishedAt: &testTime},
 			},
 		},
 		{
@@ -113,12 +113,12 @@ func TestArticlesList_ServeHTTP(t *testing.T) {
 			setupContext: testContext(),
 			articleIDs:   []string{"hash1"},
 			articles: []domain.Article{
-				{HashID: "hash1", Title: "Article 1", PublishedAt: testTime},
+				{HashID: "hash1", Title: "Article 1", PublishedAt: &testTime},
 			},
 			wantStatus:    http.StatusOK,
 			wantCacheCtrl: "max-age=3600",
 			wantArticles: []domain.Article{
-				{HashID: "hash1", Title: "Article 1", PublishedAt: testTime},
+				{HashID: "hash1", Title: "Article 1", PublishedAt: &testTime},
 			},
 		},
 		{

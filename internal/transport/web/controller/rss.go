@@ -73,7 +73,7 @@ func (c RSS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, a := range articles {
-		feed.Items = append(feed.Items, &feeds.Item{
+		item := &feeds.Item{
 			Id:          a.HashID,
 			IsPermaLink: "false",
 			Title:       a.Title,
@@ -82,8 +82,11 @@ func (c RSS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			Author: &feeds.Author{
 				Name: a.Authors,
 			},
-			Created: a.PublishedAt,
-		})
+		}
+		if a.PublishedAt != nil {
+			item.Created = *a.PublishedAt
+		}
+		feed.Items = append(feed.Items, item)
 	}
 
 	rss, err := feed.ToRss()

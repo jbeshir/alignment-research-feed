@@ -850,7 +850,6 @@ components:
         - title
         - link
         - source
-        - published_at
       properties:
         hash_id:
           type: string
@@ -880,6 +879,7 @@ components:
         published_at:
           type: string
           format: date-time
+          nullable: true
           description: Publication date
           example: "2024-01-15T10:30:00Z"
         have_read:

@@ -42,14 +42,14 @@ func TestSimilarArticlesList_ServeHTTP(t *testing.T) {
 				{HashID: "similar2", Score: 0.8},
 			},
 			articles: []domain.Article{
-				{HashID: "similar1", Title: "Similar Article 1", PublishedAt: testTime},
-				{HashID: "similar2", Title: "Similar Article 2", PublishedAt: testTime},
+				{HashID: "similar1", Title: "Similar Article 1", PublishedAt: &testTime},
+				{HashID: "similar2", Title: "Similar Article 2", PublishedAt: &testTime},
 			},
 			wantStatus:    http.StatusOK,
 			wantCacheCtrl: "max-age=3600",
 			wantArticles: []domain.Article{
-				{HashID: "similar1", Title: "Similar Article 1", PublishedAt: testTime},
-				{HashID: "similar2", Title: "Similar Article 2", PublishedAt: testTime},
+				{HashID: "similar1", Title: "Similar Article 1", PublishedAt: &testTime},
+				{HashID: "similar2", Title: "Similar Article 2", PublishedAt: &testTime},
 			},
 		},
 		{
@@ -60,12 +60,12 @@ func TestSimilarArticlesList_ServeHTTP(t *testing.T) {
 				{HashID: "similar1", Score: 0.9},
 			},
 			articles: []domain.Article{
-				{HashID: "similar1", Title: "Similar Article 1", PublishedAt: testTime},
+				{HashID: "similar1", Title: "Similar Article 1", PublishedAt: &testTime},
 			},
 			wantStatus:    http.StatusOK,
 			wantCacheCtrl: "",
 			wantArticles: []domain.Article{
-				{HashID: "similar1", Title: "Similar Article 1", PublishedAt: testTime},
+				{HashID: "similar1", Title: "Similar Article 1", PublishedAt: &testTime},
 			},
 		},
 		{

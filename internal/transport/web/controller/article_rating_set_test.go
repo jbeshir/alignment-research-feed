@@ -39,7 +39,7 @@ func TestArticleRatingSet_ServeHTTP(t *testing.T) {
 			ratingValue: "true",
 			userID:      "user456",
 			articles: []domain.Article{
-				{HashID: "hash123", Title: "Test", PublishedAt: testTime},
+				{HashID: "hash123", Title: "Test", PublishedAt: &testTime},
 			},
 			wantStatus: http.StatusNoContent,
 		},
@@ -50,7 +50,7 @@ func TestArticleRatingSet_ServeHTTP(t *testing.T) {
 			ratingValue: "false",
 			userID:      "user456",
 			articles: []domain.Article{
-				{HashID: "hash123", Title: "Test", PublishedAt: testTime},
+				{HashID: "hash123", Title: "Test", PublishedAt: &testTime},
 			},
 			wantStatus: http.StatusNoContent,
 		},
@@ -71,7 +71,7 @@ func TestArticleRatingSet_ServeHTTP(t *testing.T) {
 			ratingValue: "true",
 			userID:      "user456",
 			articles: []domain.Article{
-				{HashID: "hash123", Title: "Test", PublishedAt: testTime},
+				{HashID: "hash123", Title: "Test", PublishedAt: &testTime},
 			},
 			wantStatus: http.StatusNoContent,
 		},
@@ -82,7 +82,7 @@ func TestArticleRatingSet_ServeHTTP(t *testing.T) {
 			ratingValue: "false",
 			userID:      "user456",
 			articles: []domain.Article{
-				{HashID: "hash123", Title: "Test", PublishedAt: testTime},
+				{HashID: "hash123", Title: "Test", PublishedAt: &testTime},
 			},
 			wantStatus: http.StatusNoContent,
 		},
@@ -113,7 +113,7 @@ func TestArticleRatingSet_ServeHTTP(t *testing.T) {
 			ratingValue: "true",
 			userID:      "user456",
 			articles: []domain.Article{
-				{HashID: "hash123", Title: "Test", PublishedAt: testTime},
+				{HashID: "hash123", Title: "Test", PublishedAt: &testTime},
 			},
 			setRatingErr: errors.New("database error"),
 			wantStatus:   http.StatusInternalServerError,

@@ -35,7 +35,7 @@ func TestArticleReadSet_ServeHTTP(t *testing.T) {
 			readValue: "true",
 			userID:    "user456",
 			articles: []domain.Article{
-				{HashID: "hash123", Title: "Test", PublishedAt: testTime},
+				{HashID: "hash123", Title: "Test", PublishedAt: &testTime},
 			},
 			wantStatus: http.StatusNoContent,
 		},
@@ -45,7 +45,7 @@ func TestArticleReadSet_ServeHTTP(t *testing.T) {
 			readValue: "false",
 			userID:    "user456",
 			articles: []domain.Article{
-				{HashID: "hash123", Title: "Test", PublishedAt: testTime},
+				{HashID: "hash123", Title: "Test", PublishedAt: &testTime},
 			},
 			wantStatus: http.StatusNoContent,
 		},
@@ -73,7 +73,7 @@ func TestArticleReadSet_ServeHTTP(t *testing.T) {
 			readValue: "true",
 			userID:    "user456",
 			articles: []domain.Article{
-				{HashID: "hash123", Title: "Test", PublishedAt: testTime},
+				{HashID: "hash123", Title: "Test", PublishedAt: &testTime},
 			},
 			setErr:     errors.New("database error"),
 			wantStatus: http.StatusInternalServerError,

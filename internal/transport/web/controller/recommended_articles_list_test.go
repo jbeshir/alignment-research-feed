@@ -31,13 +31,13 @@ func TestRecommendedArticlesList_ServeHTTP(t *testing.T) {
 			name:   "successful_recommendations",
 			userID: "user456",
 			articles: []domain.Article{
-				{HashID: "rec1", Title: "Recommended 1", PublishedAt: testTime},
-				{HashID: "rec2", Title: "Recommended 2", PublishedAt: testTime},
+				{HashID: "rec1", Title: "Recommended 1", PublishedAt: &testTime},
+				{HashID: "rec2", Title: "Recommended 2", PublishedAt: &testTime},
 			},
 			wantStatus: http.StatusOK,
 			wantArticles: []domain.Article{
-				{HashID: "rec1", Title: "Recommended 1", PublishedAt: testTime},
-				{HashID: "rec2", Title: "Recommended 2", PublishedAt: testTime},
+				{HashID: "rec1", Title: "Recommended 1", PublishedAt: &testTime},
+				{HashID: "rec2", Title: "Recommended 2", PublishedAt: &testTime},
 			},
 		},
 		{

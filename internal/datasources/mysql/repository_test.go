@@ -478,6 +478,8 @@ func TestRepository_SetArticleRatingMultipleArticles(t *testing.T) {
 }
 
 func TestRepository_FetchArticlesByID(t *testing.T) {
+	article1Time := time.Date(2024, 4, 27, 11, 13, 6, 0, time.UTC)
+	article2Time := time.Date(2024, 4, 27, 16, 04, 46, 0, time.UTC)
 
 	cases := []struct {
 		name     string
@@ -497,7 +499,7 @@ func TestRepository_FetchArticlesByID(t *testing.T) {
 					Source:      "lesswrong",
 					TextStart:   "Post text 2",
 					Authors:     "Épiphanie Gédéon,Charbel-Raphaël",
-					PublishedAt: time.Date(2024, 4, 27, 16, 04, 46, 0, time.UTC),
+					PublishedAt: &article2Time,
 				},
 				{
 					HashID:      testArticleHash1,
@@ -506,7 +508,7 @@ func TestRepository_FetchArticlesByID(t *testing.T) {
 					Source:      "alignmentforum",
 					TextStart:   "Post text 1",
 					Authors:     "Andy Arditi,Oscar Obeso,Aaquib111,wesg,Neel Nanda",
-					PublishedAt: time.Date(2024, 4, 27, 11, 13, 6, 0, time.UTC),
+					PublishedAt: &article1Time,
 				},
 			},
 		},
@@ -522,7 +524,7 @@ func TestRepository_FetchArticlesByID(t *testing.T) {
 					Source:      "alignmentforum",
 					TextStart:   "Post text 1",
 					Authors:     "Andy Arditi,Oscar Obeso,Aaquib111,wesg,Neel Nanda",
-					PublishedAt: time.Date(2024, 4, 27, 11, 13, 6, 0, time.UTC),
+					PublishedAt: &article1Time,
 				},
 			},
 		},
@@ -544,7 +546,7 @@ func TestRepository_FetchArticlesByID(t *testing.T) {
 					Source:      "alignmentforum",
 					TextStart:   "Post text 1",
 					Authors:     "Andy Arditi,Oscar Obeso,Aaquib111,wesg,Neel Nanda",
-					PublishedAt: time.Date(2024, 4, 27, 11, 13, 6, 0, time.UTC),
+					PublishedAt: &article1Time,
 					HaveRead:    func() *bool { b := true; return &b }(),
 					ThumbsUp:    func() *bool { b := false; return &b }(),
 					ThumbsDown:  func() *bool { b := false; return &b }(),

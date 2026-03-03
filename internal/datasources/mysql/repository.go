@@ -255,6 +255,11 @@ func (r *Repository) FetchArticlesByID(
 			_ = json.Unmarshal([]byte(dbArticle.KeyPoints.String), &keyPoints)
 		}
 
+		var publishedAt *time.Time
+		if dbArticle.DatePublished.Valid {
+			publishedAt = &dbArticle.DatePublished.Time
+		}
+
 		articleMap[dbArticle.HashID] = domain.Article{
 			HashID:      dbArticle.HashID,
 			Title:       dbArticle.Title.String,
@@ -262,7 +267,7 @@ func (r *Repository) FetchArticlesByID(
 			TextStart:   dbArticle.TextStart,
 			Authors:     dbArticle.Authors,
 			Source:      dbArticle.Source.String,
-			PublishedAt: dbArticle.DatePublished.Time,
+			PublishedAt: publishedAt,
 			Summary:     dbArticle.Summary.String,
 			KeyPoints:   keyPoints,
 			Implication: dbArticle.Implication.String,

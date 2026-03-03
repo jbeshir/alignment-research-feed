@@ -40,7 +40,7 @@ func TestArticleGet_ServeHTTP(t *testing.T) {
 					Link:        "https://example.com/article",
 					Source:      "lesswrong",
 					Authors:     "John Doe",
-					PublishedAt: testTime,
+					PublishedAt: &testTime,
 				},
 			},
 			wantStatus:    http.StatusOK,
@@ -51,7 +51,7 @@ func TestArticleGet_ServeHTTP(t *testing.T) {
 				Link:        "https://example.com/article",
 				Source:      "lesswrong",
 				Authors:     "John Doe",
-				PublishedAt: testTime,
+				PublishedAt: &testTime,
 			},
 		},
 		{
@@ -62,7 +62,7 @@ func TestArticleGet_ServeHTTP(t *testing.T) {
 				{
 					HashID:      "hash123",
 					Title:       "Test Article",
-					PublishedAt: testTime,
+					PublishedAt: &testTime,
 				},
 			},
 			wantStatus:    http.StatusOK,
@@ -70,7 +70,7 @@ func TestArticleGet_ServeHTTP(t *testing.T) {
 			wantArticle: &domain.Article{
 				HashID:      "hash123",
 				Title:       "Test Article",
-				PublishedAt: testTime,
+				PublishedAt: &testTime,
 			},
 		},
 		{
