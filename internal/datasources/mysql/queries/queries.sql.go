@@ -114,6 +114,7 @@ SELECT
     key_points,
     implication,
     category,
+    thumbnail_url,
     have_read,
     thumbs_up,
     thumbs_down
@@ -141,6 +142,7 @@ type FetchArticlesByIDRow struct {
 	KeyPoints     sql.NullString
 	Implication   sql.NullString
 	Category      sql.NullString
+	ThumbnailUrl  sql.NullString
 	HaveRead      sql.NullBool
 	ThumbsUp      sql.NullBool
 	ThumbsDown    sql.NullBool
@@ -178,6 +180,7 @@ func (q *Queries) FetchArticlesByID(ctx context.Context, arg FetchArticlesByIDPa
 			&i.KeyPoints,
 			&i.Implication,
 			&i.Category,
+			&i.ThumbnailUrl,
 			&i.HaveRead,
 			&i.ThumbsUp,
 			&i.ThumbsDown,

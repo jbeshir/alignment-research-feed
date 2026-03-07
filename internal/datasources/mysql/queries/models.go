@@ -97,6 +97,7 @@ type Article struct {
 	KeyPoints      sql.NullString
 	Implication    sql.NullString
 	Category       sql.NullString
+	ThumbnailUrl   sql.NullString
 }
 
 type Summary struct {

@@ -24,6 +24,7 @@ SELECT
     key_points,
     implication,
     category,
+    thumbnail_url,
     have_read,
     thumbs_up,
     thumbs_down

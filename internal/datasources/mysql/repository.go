@@ -261,20 +261,21 @@ func (r *Repository) FetchArticlesByID(
 		}
 
 		articleMap[dbArticle.HashID] = domain.Article{
-			HashID:      dbArticle.HashID,
-			Title:       dbArticle.Title.String,
-			Link:        dbArticle.Url.String,
-			TextStart:   dbArticle.TextStart,
-			Authors:     dbArticle.Authors,
-			Source:      dbArticle.Source.String,
-			PublishedAt: publishedAt,
-			Summary:     dbArticle.Summary.String,
-			KeyPoints:   keyPoints,
-			Implication: dbArticle.Implication.String,
-			Category:    dbArticle.Category.String,
-			HaveRead:    haveRead,
-			ThumbsUp:    thumbsUp,
-			ThumbsDown:  thumbsDown,
+			HashID:       dbArticle.HashID,
+			Title:        dbArticle.Title.String,
+			Link:         dbArticle.Url.String,
+			TextStart:    dbArticle.TextStart,
+			Authors:      dbArticle.Authors,
+			Source:       dbArticle.Source.String,
+			PublishedAt:  publishedAt,
+			Summary:      dbArticle.Summary.String,
+			KeyPoints:    keyPoints,
+			Implication:  dbArticle.Implication.String,
+			Category:     dbArticle.Category.String,
+			ThumbnailURL: dbArticle.ThumbnailUrl.String,
+			HaveRead:     haveRead,
+			ThumbsUp:     thumbsUp,
+			ThumbsDown:   thumbsDown,
 		}
 	}
 

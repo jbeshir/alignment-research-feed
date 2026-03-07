@@ -908,6 +908,10 @@ components:
             AI Capabilities & Behavior, Risks & Strategy, Forecasting,
             AI & Society, Field Building, Other.
             More may be added over time.
+        thumbnail_url:
+          type: string
+          format: uri
+          description: URL to a thumbnail image for the article, when available
         thumbs_down:
           type: boolean
           description: Whether the authenticated user has given this a thumbs down (only present when authenticated)
