@@ -417,13 +417,13 @@ func paginationToLimitOffset(page, pageSize int) (limit, offset int32) {
 	if pageSize > math.MaxInt32 {
 		pageSize = math.MaxInt32
 	}
-	limit = int32(pageSize) //nolint:gosec // bounds checked above
+	limit = int32(pageSize)
 
 	off := (page - 1) * pageSize
 	if off > math.MaxInt32 {
 		off = math.MaxInt32
 	}
-	offset = int32(off) //nolint:gosec // bounds checked above
+	offset = int32(off)
 
 	return limit, offset
 }

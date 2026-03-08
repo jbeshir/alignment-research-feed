@@ -382,13 +382,13 @@ func TestKMeans_HighDimensional(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		data[i] = make([]float32, dim)
 		for j := 0; j < dim; j++ {
-			data[i][j] = float32(j) * 0.01 //nolint:gosec // G602: i,j bounded by loop conditions
+			data[i][j] = float32(j) * 0.01
 		}
 	}
 	for i := 2; i < 4; i++ {
 		data[i] = make([]float32, dim)
 		for j := 0; j < dim; j++ {
-			data[i][j] = float32(j)*0.01 + 100.0 //nolint:gosec // G602: i,j bounded by loop conditions
+			data[i][j] = float32(j)*0.01 + 100.0
 		}
 	}
 

@@ -6,7 +6,6 @@ setup-tools: setup-files
 	go install github.com/joho/godotenv/cmd/godotenv@latest
 	go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 	go install golang.org/x/tools/cmd/goimports@latest
-	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
 	go install github.com/vektra/mockery/v2@latest
 	go install github.com/daveshanley/vacuum@latest
 
@@ -59,7 +58,7 @@ setup-files: .env
 
 .PHONY: lint
 lint:
-	golangci-lint run ./...
+	go tool golangci-lint run ./...
 
 .PHONY: lint-openapi
 lint-openapi:
