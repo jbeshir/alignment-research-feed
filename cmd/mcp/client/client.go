@@ -24,10 +24,11 @@ type Article struct {
 	Source      string    `json:"source"`
 	PublishedAt time.Time `json:"published_at"`
 
-	Summary     string   `json:"summary,omitempty"`
-	KeyPoints   []string `json:"key_points,omitempty"`
-	Implication string   `json:"implication,omitempty"`
-	Category    string   `json:"category,omitempty"`
+	Summary      string   `json:"summary,omitempty"`
+	KeyPoints    []string `json:"key_points,omitempty"`
+	Implication  string   `json:"implication,omitempty"`
+	Category     string   `json:"category,omitempty"`
+	ThumbnailURL string   `json:"thumbnail_url,omitempty"`
 
 	HaveRead   *bool `json:"have_read,omitempty"`
 	ThumbsUp   *bool `json:"thumbs_up,omitempty"`

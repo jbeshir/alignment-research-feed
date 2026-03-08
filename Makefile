@@ -63,7 +63,7 @@ lint:
 
 .PHONY: lint-openapi
 lint-openapi:
-	vacuum lint openapi/api.yaml
+	vacuum lint -r openapi/ruleset.yaml openapi/api.yaml
 
 .PHONY: build-openapi-docs
 build-openapi-docs:

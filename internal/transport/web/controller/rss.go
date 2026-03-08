@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/url"
 	"slices"
-	"strconv"
 	"strings"
 	"time"
 
@@ -154,33 +153,14 @@ func articleFiltersFromQuery(q url.Values) (domain.ArticleFilters, error) {
 }
 
 func listOptionsFromQuery(q url.Values) (domain.ArticleListOptions, error) {
-	var options domain.ArticleListOptions
-	if q.Has("page") {
-		page, err := strconv.ParseInt(q.Get("page"), 10, 32)
-		if err != nil {
-			return domain.ArticleListOptions{}, fmt.Errorf("unable to parse page from query: %w", err)
-		}
-		if page < 1 {
-			return domain.ArticleListOptions{}, fmt.Errorf("invalid page value [%d]", page)
-		}
-		options.Page = int(page)
-	} else {
-		options.Page = 1
+	page, pageSize, err := parsePagination(q)
+	if err != nil {
+		return domain.ArticleListOptions{}, err
 	}
 
-	if q.Has("page_size") {
-		pageSize, err := strconv.ParseInt(q.Get("page_size"), 10, 32)
-		if err != nil {
-			return domain.ArticleListOptions{}, fmt.Errorf("unable to parse page size from query: %w", err)
-		}
-		if pageSizeLimit := int64(200); pageSize > pageSizeLimit {
-			return domain.ArticleListOptions{}, fmt.Errorf("page size [%d] exceeds limit [%d]",
-				pageSize, pageSizeLimit)
-		}
-		options.PageSize = int(pageSize)
-	} else {
-		options.PageSize = 100
-	}
+	var options domain.ArticleListOptions
+	options.Page = page
+	options.PageSize = pageSize
 
 	if q.Has("sort") {
 		orderings := strings.Split(q.Get("sort"), ",")

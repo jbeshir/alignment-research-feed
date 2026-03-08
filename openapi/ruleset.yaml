@@ -1,0 +1,6 @@
+extends: [[vacuum:oas, recommended]]
+rules:
+  # API uses snake_case properties (hash_id, text_start, etc.) by design
+  camel-case-properties: false
+  # Established routes use underscores (thumbs_up, thumbs_down)
+  paths-kebab-case: false
