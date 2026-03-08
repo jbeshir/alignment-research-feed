@@ -77,7 +77,7 @@ func (c RSS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			IsPermaLink: "false",
 			Title:       a.Title,
 			Link:        &feeds.Link{Href: a.Link},
-			Description: a.TextStart,
+			Description: articleDescription(a),
 			Author: &feeds.Author{
 				Name: a.Authors,
 			},
@@ -106,6 +106,13 @@ func (c RSS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		logger := domain.LoggerFromContext(ctx)
 		logger.ErrorContext(ctx, "unable to write feed to response", "error", err)
 	}
+}
+
+func articleDescription(a domain.Article) string {
+	if a.Summary != "" {
+		return a.Summary
+	}
+	return a.TextStart
 }
 
 func articleFiltersFromQuery(q url.Values) (domain.ArticleFilters, error) {
