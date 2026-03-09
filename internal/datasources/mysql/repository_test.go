@@ -1,7 +1,6 @@
 package mysql
 
 import (
-	"context"
 	"database/sql"
 	"os"
 	"testing"
@@ -23,14 +22,14 @@ func setupTestDB(t *testing.T) *sql.DB {
 		t.Skip("skipping MySQL integration tests in short mode")
 	}
 
-	db, err := Connect(context.Background(), os.Getenv("MYSQL_URI"))
+	db, err := Connect(t.Context(), os.Getenv("MYSQL_URI"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	q := queries.New(db)
 
-	err = q.InsertArticle(context.Background(), queries.InsertArticleParams{
+	err = q.InsertArticle(t.Context(), queries.InsertArticleParams{
 		HashID:         testArticleHash1,
 		Title:          sql.NullString{String: "Refusal in LLMs is mediated by a single direction", Valid: true},
 		Url:            sql.NullString{String: "https://www.alignmentforum.org/posts/jGuXSZgv6qfdhMCuJ/refusal-in-llms-is-mediated-by-a-single-direction", Valid: true},
@@ -44,7 +43,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 	})
 	require.NoError(t, err)
 
-	err = q.InsertArticle(context.Background(), queries.InsertArticleParams{
+	err = q.InsertArticle(t.Context(), queries.InsertArticleParams{
 		HashID:         testArticleHash2,
 		Title:          sql.NullString{String: "Constructability: Plainly-coded AGIs may be feasible in the near future", Valid: true},
 		Url:            sql.NullString{String: "https://www.lesswrong.com/posts/y9tnz27oLmtLxcrEF/constructability-plainly-coded-agis-may-be-feasible-in-the", Valid: true},
@@ -59,7 +58,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 	require.NoError(t, err)
 
 	// Set up some test ratings using SetArticleRead
-	err = q.SetArticleRead(context.Background(), queries.SetArticleReadParams{
+	err = q.SetArticleRead(t.Context(), queries.SetArticleReadParams{
 		ArticleHashID: testArticleHash1,
 		UserID:        "test-user-123",
 		HaveRead:      true,
@@ -74,10 +73,10 @@ func teardownTestDB(t *testing.T, db *sql.DB) {
 		t.Skip("skipping MySQL integration tests in short mode")
 	}
 
-	_, err := db.ExecContext(context.Background(), "DELETE FROM user_article_interactions")
+	_, err := db.ExecContext(t.Context(), "DELETE FROM user_article_interactions")
 	require.NoError(t, err)
 
-	_, err = db.ExecContext(context.Background(), "DELETE FROM articles")
+	_, err = db.ExecContext(t.Context(), "DELETE FROM articles")
 	require.NoError(t, err)
 
 	err = db.Close()
@@ -130,7 +129,7 @@ func TestRepository_ListLatestArticleIDs(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			sut := New(db)
 
-			results, err := sut.ListLatestArticleIDs(context.Background(), c.filters, domain.ArticleListOptions{
+			results, err := sut.ListLatestArticleIDs(t.Context(), c.filters, domain.ArticleListOptions{
 				PageSize: 100,
 				Page:     1,
 			})
@@ -190,7 +189,7 @@ func TestRepository_ListLatestArticleIDs_DateFilters(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			sut := New(db)
 
-			results, err := sut.ListLatestArticleIDs(context.Background(), c.filters, domain.ArticleListOptions{
+			results, err := sut.ListLatestArticleIDs(t.Context(), c.filters, domain.ArticleListOptions{
 				PageSize: 100,
 				Page:     1,
 			})
@@ -257,7 +256,7 @@ func TestRepository_ListLatestArticleIDs_Ordering(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			sut := New(db)
 
-			results, err := sut.ListLatestArticleIDs(context.Background(), domain.ArticleFilters{}, c.options)
+			results, err := sut.ListLatestArticleIDs(t.Context(), domain.ArticleFilters{}, c.options)
 			require.NoError(t, err)
 			assert.Equal(t, c.expected, results)
 		})
@@ -301,7 +300,7 @@ func TestRepository_ListLatestArticleIDs_Pagination(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			sut := New(db)
 
-			results, err := sut.ListLatestArticleIDs(context.Background(), domain.ArticleFilters{}, domain.ArticleListOptions{
+			results, err := sut.ListLatestArticleIDs(t.Context(), domain.ArticleFilters{}, domain.ArticleListOptions{
 				PageSize: c.pageSize,
 				Page:     c.page,
 			})
@@ -348,7 +347,7 @@ func TestRepository_TotalMatchingArticles(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			sut := New(db)
 
-			count, err := sut.TotalMatchingArticles(context.Background(), c.filters)
+			count, err := sut.TotalMatchingArticles(t.Context(), c.filters)
 			require.NoError(t, err)
 			assert.Equal(t, c.expected, count)
 		})
@@ -360,7 +359,7 @@ func TestRepository_SetArticleRating(t *testing.T) {
 	defer teardownTestDB(t, db)
 
 	sut := New(db)
-	ctx := context.Background()
+	ctx := t.Context()
 	userID := "rating-test-user"
 	articleID := testArticleHash1
 
@@ -414,7 +413,7 @@ func TestRepository_ListThumbsUpArticleIDs(t *testing.T) {
 	defer teardownTestDB(t, db)
 
 	sut := New(db)
-	ctx := context.Background()
+	ctx := t.Context()
 	userID := "thumbs-up-test-user"
 
 	// Initially no thumbs up
@@ -452,7 +451,7 @@ func TestRepository_SetArticleRatingMultipleArticles(t *testing.T) {
 	defer teardownTestDB(t, db)
 
 	sut := New(db)
-	ctx := context.Background()
+	ctx := t.Context()
 	userID := "multi-vector-test-user"
 	articleID1 := testArticleHash1
 	articleID2 := testArticleHash2

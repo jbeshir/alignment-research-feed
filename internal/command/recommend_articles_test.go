@@ -1,7 +1,6 @@
 package command
 
 import (
-	"context"
 	"errors"
 	"testing"
 	"time"
@@ -132,7 +131,7 @@ func TestGenerateRecommendations_Execute(t *testing.T) {
 				testGenerateRecommendationsConfig(),
 			)
 
-			result, err := cmd.Execute(context.Background(), GenerateRecommendationsRequest{UserID: "user1", Limit: 10})
+			result, err := cmd.Execute(t.Context(), GenerateRecommendationsRequest{UserID: "user1", Limit: 10})
 
 			if tc.wantErr {
 				require.Error(t, err)
@@ -192,7 +191,7 @@ func TestGenerateRecommendations_Execute_WithNegativeSignals(t *testing.T) {
 		testGenerateRecommendationsConfig(),
 	)
 
-	result, err := cmd.Execute(context.Background(), GenerateRecommendationsRequest{UserID: "user1", Limit: 10})
+	result, err := cmd.Execute(t.Context(), GenerateRecommendationsRequest{UserID: "user1", Limit: 10})
 
 	require.NoError(t, err)
 	require.Len(t, result, 1)

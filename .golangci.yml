@@ -41,6 +41,7 @@ linters:
     - unparam
     - unused
     - usestdlibvars
+    - usetesting
   exclusions:
     rules:
       - linters:
