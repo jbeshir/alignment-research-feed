@@ -154,7 +154,7 @@ func TestSemanticSearch_ServeHTTP(t *testing.T) {
 				Fetcher:    fetcher,
 			}
 
-			req := httptest.NewRequest(http.MethodPost, "/v1/articles/semantic-search", strings.NewReader(tc.body))
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/v1/articles/semantic-search", strings.NewReader(tc.body))
 			req.Header.Set("Content-Type", "application/json")
 			req = testContext()(req)
 			rec := httptest.NewRecorder()

@@ -11,11 +11,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: golangci-lint
-        uses: golangci/golangci-lint-action@v8
+      - name: Setup Go
+        uses: actions/setup-go@v5
         with:
-          version: v2.8.0
-          args: --config .golangci.yml
+          go-version-file: go.mod
+
+      - name: Lint
+        run: make lint
 
   lint-openapi:
     name: Lint OpenAPI
@@ -27,13 +29,13 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.23"
+          go-version-file: go.mod
 
       - name: Install vacuum
         run: go install github.com/daveshanley/vacuum@latest
 
       - name: Lint OpenAPI spec
-        run: vacuum lint openapi/api.yaml
+        run: make lint-openapi
 
   test:
     name: Test

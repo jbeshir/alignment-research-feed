@@ -75,7 +75,7 @@ func TestRecommendedArticlesList_ServeHTTP(t *testing.T) {
 				Command: recommendCmd,
 			}
 
-			req := httptest.NewRequest(http.MethodGet, "/recommended", nil)
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/recommended", nil)
 			if tc.userID != "" {
 				req = testContextWithUserID(tc.userID)(req)
 			} else {

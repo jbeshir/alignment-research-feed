@@ -103,7 +103,7 @@ func TestArticleReadSet_ServeHTTP(t *testing.T) {
 				ReadSetter: readSetter,
 			}
 
-			req := httptest.NewRequest(http.MethodPost, "/articles/"+tc.articleID+"/read/"+tc.readValue, nil)
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/articles/"+tc.articleID+"/read/"+tc.readValue, nil)
 			req = testContextWithUserID(tc.userID)(req)
 			req = mux.SetURLVars(req, map[string]string{
 				"article_id": tc.articleID,

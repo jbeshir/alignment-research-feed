@@ -11,7 +11,10 @@ formatters:
 linters:
   enable:
     - asasalint
+    - bodyclose
     - dupl
+    - dupword
+    - durationcheck
     - errcheck
     - errchkjson
     - errorlint
@@ -24,12 +27,18 @@ linters:
     - gosec
     - govet
     - iface
+    - ineffassign
+    - intrange
     - lll
     - loggercheck
     - makezero
     - misspell
     - musttag
+    - nakedret
+    - nilerr
+    - noctx
     - nolintlint
+    - predeclared
     - promlinter
     - reassign
     - recvcheck
@@ -38,6 +47,7 @@ linters:
     - spancheck
     - staticcheck
     - testifylint
+    - unconvert
     - unparam
     - unused
     - usestdlibvars

@@ -95,7 +95,7 @@ func TestArticleGet_ServeHTTP(t *testing.T) {
 				CacheMaxAge: time.Hour,
 			}
 
-			req := httptest.NewRequest(http.MethodGet, "/articles/"+tc.articleID, nil)
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/articles/"+tc.articleID, nil)
 			req = tc.setupContext(req)
 			req = mux.SetURLVars(req, map[string]string{"article_id": tc.articleID})
 			rec := httptest.NewRecorder()

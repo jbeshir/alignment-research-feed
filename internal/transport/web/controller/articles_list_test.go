@@ -188,7 +188,7 @@ func TestArticlesList_ServeHTTP(t *testing.T) {
 				CacheMaxAge: time.Hour,
 			}
 
-			req := httptest.NewRequest(http.MethodGet, "/articles?"+tc.queryString, nil)
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/articles?"+tc.queryString, nil)
 			req = tc.setupContext(req)
 			rec := httptest.NewRecorder()
 

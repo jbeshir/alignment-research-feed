@@ -70,7 +70,7 @@ func TestRSS_ServeHTTP(t *testing.T) {
 				},
 			}, nil)
 
-		req := httptest.NewRequest(http.MethodGet, "/rss", nil)
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/rss", nil)
 		req = testContext()(req)
 		rec := httptest.NewRecorder()
 
@@ -146,7 +146,7 @@ func TestRSS_ServeHTTP(t *testing.T) {
 				},
 			}, nil)
 
-		req := httptest.NewRequest(http.MethodGet, "/rss", nil)
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/rss", nil)
 		req = testContext()(req)
 		rec := httptest.NewRecorder()
 
@@ -166,7 +166,7 @@ func TestRSS_ServeHTTP(t *testing.T) {
 			FetchArticlesByID(mock.Anything, []string{}).
 			Return([]domain.Article{}, nil)
 
-		req := httptest.NewRequest(http.MethodGet, "/rss", nil)
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/rss", nil)
 		req = testContext()(req)
 		rec := httptest.NewRecorder()
 
@@ -184,7 +184,7 @@ func TestRSS_ServeHTTP(t *testing.T) {
 			ListLatestArticleIDs(mock.Anything, mock.Anything, mock.Anything).
 			Return(nil, assert.AnError)
 
-		req := httptest.NewRequest(http.MethodGet, "/rss", nil)
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/rss", nil)
 		req = testContext()(req)
 		rec := httptest.NewRecorder()
 
@@ -203,7 +203,7 @@ func TestRSS_ServeHTTP(t *testing.T) {
 			FetchArticlesByID(mock.Anything, []string{"h1"}).
 			Return(nil, assert.AnError)
 
-		req := httptest.NewRequest(http.MethodGet, "/rss", nil)
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/rss", nil)
 		req = testContext()(req)
 		rec := httptest.NewRecorder()
 
@@ -215,7 +215,7 @@ func TestRSS_ServeHTTP(t *testing.T) {
 	t.Run("invalid filter returns 400", func(t *testing.T) {
 		controller, _, _ := newRSSController(t)
 
-		req := httptest.NewRequest(http.MethodGet, "/rss?filter_published_after=not-a-date", nil)
+		req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/rss?filter_published_after=not-a-date", nil)
 		req = testContext()(req)
 		rec := httptest.NewRecorder()
 

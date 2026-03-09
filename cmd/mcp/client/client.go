@@ -164,6 +164,7 @@ func (c *Client) SearchArticles(ctx context.Context, filters SearchFilters) ([]A
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = resp.Body.Close() }()
 
 	var result ArticlesResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -179,6 +180,7 @@ func (c *Client) GetArticle(ctx context.Context, articleID string) (*Article, er
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = resp.Body.Close() }()
 
 	var article Article
 	if err := c.handleResponse(resp, &article); err != nil {
@@ -204,6 +206,7 @@ func (c *Client) GetSimilarArticles(ctx context.Context, articleID string, limit
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = resp.Body.Close() }()
 
 	var result ArticlesResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -232,6 +235,7 @@ func (c *Client) SemanticSearch(ctx context.Context, text string, limit int) ([]
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = resp.Body.Close() }()
 
 	var result ArticlesResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -257,6 +261,7 @@ func (c *Client) GetRecommendations(ctx context.Context, limit int) ([]Article, 
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = resp.Body.Close() }()
 
 	var result ArticlesResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -274,6 +279,7 @@ func (c *Client) RateArticle(ctx context.Context, articleID string, thumbsUp, th
 	if err != nil {
 		return err
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if err := c.handleResponse(resp, nil); err != nil {
 		return fmt.Errorf("setting thumbs_up: %w", err)
 	}
@@ -284,6 +290,7 @@ func (c *Client) RateArticle(ctx context.Context, articleID string, thumbsUp, th
 	if err != nil {
 		return err
 	}
+	defer func() { _ = resp.Body.Close() }()
 	if err := c.handleResponse(resp, nil); err != nil {
 		return fmt.Errorf("setting thumbs_down: %w", err)
 	}
@@ -298,6 +305,7 @@ func (c *Client) MarkRead(ctx context.Context, articleID string, read bool) erro
 	if err != nil {
 		return err
 	}
+	defer func() { _ = resp.Body.Close() }()
 	return c.handleResponse(resp, nil)
 }
 
@@ -320,6 +328,7 @@ func (c *Client) ListLiked(ctx context.Context, page, pageSize int) ([]Article, 
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = resp.Body.Close() }()
 
 	var result ArticlesResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -348,6 +357,7 @@ func (c *Client) ListDisliked(ctx context.Context, page, pageSize int) ([]Articl
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = resp.Body.Close() }()
 
 	var result ArticlesResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -376,6 +386,7 @@ func (c *Client) ListUnreviewed(ctx context.Context, page, pageSize int) ([]Arti
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = resp.Body.Close() }()
 
 	var result ArticlesResponse
 	if err := c.handleResponse(resp, &result); err != nil {

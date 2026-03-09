@@ -162,7 +162,7 @@ func TestKMeans_TwoDistinctClusters(t *testing.T) {
 	// Verify that points are correctly clustered
 	// First 4 points should be in one cluster, last 4 in another
 	cluster0 := result.Assignments[0]
-	for i := 0; i < 4; i++ {
+	for i := range 4 {
 		assert.Equal(t, cluster0, result.Assignments[i], "point %d should be in same cluster as point 0", i)
 	}
 
@@ -379,15 +379,15 @@ func TestKMeans_HighDimensional(t *testing.T) {
 	data := make([][]float32, 4)
 
 	// Create two clusters: one near origin, one far away
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		data[i] = make([]float32, dim)
-		for j := 0; j < dim; j++ {
+		for j := range dim {
 			data[i][j] = float32(j) * 0.01
 		}
 	}
 	for i := 2; i < 4; i++ {
 		data[i] = make([]float32, dim)
-		for j := 0; j < dim; j++ {
+		for j := range dim {
 			data[i][j] = float32(j)*0.01 + 100.0
 		}
 	}
@@ -511,7 +511,7 @@ func BenchmarkKMeans(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		rng := newTestRand(42)
 		KMeans(data, 5, config, rng)
 	}
@@ -526,7 +526,7 @@ func BenchmarkEuclideanDistanceSquared(b *testing.B) {
 	}
 
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		EuclideanDistanceSquared(a, c)
 	}
 }
@@ -549,7 +549,7 @@ func TestKMeansPlusPlusInitialization(t *testing.T) {
 
 	// Calculate total spread - centroids should be reasonably spread apart
 	totalDist := 0.0
-	for i := 0; i < len(centroids); i++ {
+	for i := range centroids {
 		for j := i + 1; j < len(centroids); j++ {
 			totalDist += EuclideanDistance(centroids[i], centroids[j])
 		}

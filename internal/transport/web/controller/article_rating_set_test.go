@@ -162,7 +162,7 @@ func TestArticleRatingSet_ServeHTTP(t *testing.T) {
 				urlPath = "/articles/" + tc.articleID + "/thumbs_down/" + tc.ratingValue
 			}
 
-			req := httptest.NewRequest(http.MethodPost, urlPath, nil)
+			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, urlPath, nil)
 			req = testContextWithUserID(tc.userID)(req)
 			req = mux.SetURLVars(req, map[string]string{
 				"article_id": tc.articleID,

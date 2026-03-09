@@ -49,7 +49,7 @@ func KMeans(data [][]float32, k int, config ClusterConfig, rng *rand.Rand) Clust
 	centroids := initializeCentroidsKMeansPlusPlus(data, k, rng)
 	assignments := make([]int, len(data))
 
-	for iter := 0; iter < config.MaxIterations; iter++ {
+	for range config.MaxIterations {
 		// Assignment step: assign each point to nearest centroid
 		assignPointsToCentroids(data, centroids, assignments)
 
@@ -146,7 +146,7 @@ func initializeCentroidsKMeansPlusPlus(data [][]float32, k int, rng *rand.Rand) 
 		totalDist := float64(0)
 		for j, point := range data {
 			minDist := math.MaxFloat64
-			for ci := 0; ci < i; ci++ {
+			for ci := range i {
 				dist := EuclideanDistanceSquared(point, centroids[ci])
 				if dist < minDist {
 					minDist = dist
