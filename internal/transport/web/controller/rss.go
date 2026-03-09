@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"encoding/xml"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -18,8 +19,11 @@ type RSS struct {
 	FeedPath        string
 	FeedAuthorName  string
 	FeedAuthorEmail string
-	Dataset         datasources.DatasetRepository
-	CacheMaxAge     time.Duration
+	Dataset         interface {
+		datasources.LatestArticleLister
+		datasources.ArticleFetcher
+	}
+	CacheMaxAge time.Duration
 }
 
 func (c RSS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -88,7 +92,14 @@ func (c RSS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		feed.Items = append(feed.Items, item)
 	}
 
-	rss, err := feed.ToRss()
+	rssFeed := (&feeds.Rss{Feed: feed}).RssFeed()
+	for i, a := range articles {
+		if i < len(rssFeed.Items) && a.Category != "" {
+			rssFeed.Items[i].Category = a.Category
+		}
+	}
+
+	data, err := xml.MarshalIndent(rssFeed.FeedXml(), "", "  ")
 	if err != nil {
 		ctx := r.Context()
 		logger := domain.LoggerFromContext(ctx)
@@ -97,6 +108,7 @@ func (c RSS) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	rss := xml.Header + string(data)
 
 	w.Header().Set("Content-Type", "text/xml")
 	w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", int(c.CacheMaxAge.Seconds())))

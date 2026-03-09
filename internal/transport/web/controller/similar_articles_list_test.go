@@ -108,8 +108,8 @@ func TestSimilarArticlesList_ServeHTTP(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			fetcher := mocks.NewMockArticleFetcher(t)
-			similarity := mocks.NewMockSimilarArticleLister(t)
+			fetcher := mocks.NewArticleFetcher(t)
+			similarity := mocks.NewSimilarArticleLister(t)
 
 			if !tc.skipSimilar {
 				similarity.EXPECT().

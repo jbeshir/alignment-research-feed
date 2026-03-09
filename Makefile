@@ -6,15 +6,12 @@ setup-tools: setup-files
 	go install github.com/joho/godotenv/cmd/godotenv@latest
 	go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 	go install golang.org/x/tools/cmd/goimports@latest
-	go install github.com/vektra/mockery/v2@latest
+	go install github.com/vektra/mockery/v3@latest
 	go install github.com/daveshanley/vacuum@latest
 
 .PHONY generate:
 generate:
 	go generate ./...
-
-.PHONY mocks:
-mocks:
 	mockery
 
 .PHONY test-short:

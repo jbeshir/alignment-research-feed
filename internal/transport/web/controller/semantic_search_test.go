@@ -122,9 +122,9 @@ func TestSemanticSearch_ServeHTTP(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			embedder := mocks.NewMockEmbedder(t)
-			similarity := mocks.NewMockSimilarArticlesByVectorLister(t)
-			fetcher := mocks.NewMockArticleFetcher(t)
+			embedder := mocks.NewEmbedder(t)
+			similarity := mocks.NewSimilarArticlesByVectorLister(t)
+			fetcher := mocks.NewArticleFetcher(t)
 
 			if !tc.skipEmbed {
 				embedder.EXPECT().

@@ -84,7 +84,7 @@ func TestArticleGet_ServeHTTP(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			fetcher := mocks.NewMockArticleFetcher(t)
+			fetcher := mocks.NewArticleFetcher(t)
 
 			fetcher.EXPECT().
 				FetchArticlesByID(mock.Anything, []string{tc.articleID}).

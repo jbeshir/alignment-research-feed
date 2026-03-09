@@ -82,8 +82,8 @@ func TestArticleReadSet_ServeHTTP(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			fetcher := mocks.NewMockArticleFetcher(t)
-			readSetter := mocks.NewMockArticleReadSetter(t)
+			fetcher := mocks.NewArticleFetcher(t)
+			readSetter := mocks.NewArticleReadSetter(t)
 
 			if !tc.skipFetch {
 				fetcher.EXPECT().

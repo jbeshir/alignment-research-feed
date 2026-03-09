@@ -62,7 +62,7 @@ func TestRecommendedArticlesList_ServeHTTP(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			recommendCmd := cmdmocks.NewMockCommand[command.RecommendArticlesRequest, []domain.Article](t)
+			recommendCmd := cmdmocks.NewCommand[command.RecommendArticlesRequest, []domain.Article](t)
 
 			if tc.userID != "" {
 				expectedReq := command.RecommendArticlesRequest{UserID: tc.userID, Limit: recommendationsLimit}

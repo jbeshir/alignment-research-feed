@@ -1,12 +1,14 @@
-with-expecter: true
-dir: "{{.InterfaceDir}}/mocks"
-mockname: "Mock{{.InterfaceName}}"
-outpkg: "mocks"
-filename: "mock_{{.InterfaceName | snakecase}}.go"
+dir: '{{.InterfaceDir}}/mocks'
+filename: '{{.InterfaceName | snakecase}}.go'
+structname: '{{.InterfaceName}}'
+pkgname: mocks
+template: testify
+template-data:
+  unroll-variadic: true
 packages:
-  github.com/jbeshir/alignment-research-feed/internal/datasources:
+  github.com/jbeshir/alignment-research-feed/internal/command:
     config:
       all: true
-  github.com/jbeshir/alignment-research-feed/internal/command:
+  github.com/jbeshir/alignment-research-feed/internal/datasources:
     config:
       all: true

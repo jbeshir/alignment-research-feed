@@ -122,8 +122,8 @@ func TestArticleRatingSet_ServeHTTP(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			fetcher := mocks.NewMockArticleFetcher(t)
-			setRatingCmd := cmdmocks.NewMockCommand[command.SetArticleRatingRequest, command.Empty](t)
+			fetcher := mocks.NewArticleFetcher(t)
+			setRatingCmd := cmdmocks.NewCommand[command.SetArticleRatingRequest, command.Empty](t)
 
 			if !tc.skipFetch {
 				fetcher.EXPECT().

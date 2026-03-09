@@ -32,8 +32,8 @@ func testContextWithUserID(userID string) func(r *http.Request) *http.Request {
 }
 
 type mockArticlesListLister struct {
-	*mocks.MockLatestArticleLister
-	*mocks.MockArticleFetcher
+	*mocks.LatestArticleLister
+	*mocks.ArticleFetcher
 }
 
 func TestArticlesList_ServeHTTP(t *testing.T) {
@@ -165,8 +165,8 @@ func TestArticlesList_ServeHTTP(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			lister := mocks.NewMockLatestArticleLister(t)
-			fetcher := mocks.NewMockArticleFetcher(t)
+			lister := mocks.NewLatestArticleLister(t)
+			fetcher := mocks.NewArticleFetcher(t)
 
 			if !tc.skipListIDs {
 				lister.EXPECT().
@@ -182,8 +182,8 @@ func TestArticlesList_ServeHTTP(t *testing.T) {
 
 			controller := ArticlesList{
 				Lister: &mockArticlesListLister{
-					MockLatestArticleLister: lister,
-					MockArticleFetcher:      fetcher,
+					LatestArticleLister: lister,
+					ArticleFetcher:      fetcher,
 				},
 				CacheMaxAge: time.Hour,
 			}

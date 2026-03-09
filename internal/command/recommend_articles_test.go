@@ -95,10 +95,10 @@ func TestGenerateRecommendations_Execute(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			vectorSimilarity := mocks.NewMockSimilarArticlesByVectorLister(t)
-			interactionStore := mocks.NewMockUserArticleInteractionStore(t)
-			clusterStore := mocks.NewMockUserInterestClusterStore(t)
-			readArticlesLister := mocks.NewMockReadArticleIDsLister(t)
+			vectorSimilarity := mocks.NewSimilarArticlesByVectorLister(t)
+			interactionStore := mocks.NewUserArticleInteractionStore(t)
+			clusterStore := mocks.NewUserInterestClusterStore(t)
+			readArticlesLister := mocks.NewReadArticleIDsLister(t)
 
 			// Read articles lister is always called first
 			readArticlesLister.EXPECT().
@@ -148,10 +148,10 @@ func TestGenerateRecommendations_Execute(t *testing.T) {
 func TestGenerateRecommendations_Execute_WithNegativeSignals(t *testing.T) {
 	now := time.Now()
 
-	vectorSimilarity := mocks.NewMockSimilarArticlesByVectorLister(t)
-	interactionStore := mocks.NewMockUserArticleInteractionStore(t)
-	clusterStore := mocks.NewMockUserInterestClusterStore(t)
-	readArticlesLister := mocks.NewMockReadArticleIDsLister(t)
+	vectorSimilarity := mocks.NewSimilarArticlesByVectorLister(t)
+	interactionStore := mocks.NewUserArticleInteractionStore(t)
+	clusterStore := mocks.NewUserInterestClusterStore(t)
+	readArticlesLister := mocks.NewReadArticleIDsLister(t)
 
 	thumbsUpVecs := []domain.UserArticleRating{
 		{ArticleHashID: "art1", Vector: []float32{1.0, 0.0, 0.0}, RatedAt: now},
