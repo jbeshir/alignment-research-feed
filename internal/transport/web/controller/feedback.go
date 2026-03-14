@@ -15,13 +15,13 @@ const (
 	boolFalse = "false"
 )
 
-type feedbackSetter func(ctx context.Context, hashID string, userID string, value bool) error
+type articleBoolSetter func(ctx context.Context, hashID string, userID string, value bool) error
 
-func handleFeedback(
+func setArticleBoolFromRequest(
 	w http.ResponseWriter,
 	r *http.Request,
 	fetcher datasources.ArticleFetcher,
-	setter feedbackSetter,
+	setter articleBoolSetter,
 	paramName string,
 ) {
 	vars := mux.Vars(r)
