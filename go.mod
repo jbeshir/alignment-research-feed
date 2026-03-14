@@ -235,6 +235,5 @@ require (
 	mvdan.cc/unparam v0.0.0-20251027182757-5beb8c8f8f15 // indirect
 )
 
-replace github.com/gorilla/feeds v1.1.2 => github.com/jbeshir/gorilla-feeds v0.0.0-20240110072658-f3d0c21c0bd5
 
 tool github.com/golangci/golangci-lint/v2/cmd/golangci-lint
