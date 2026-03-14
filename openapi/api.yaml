@@ -49,25 +49,7 @@ paths:
         - $ref: "#/components/parameters/FilterSourcesBlocklist"
         - $ref: "#/components/parameters/FilterTitleFulltext"
         - $ref: "#/components/parameters/FilterAuthorsFulltext"
-        - name: filter_category
-          in: query
-          description: |
-            Filter by LLM-assigned category. Current categories are listed in the
-            schema enum; more may be added over time.
-          schema:
-            type: string
-            enum:
-              - Interpretability
-              - Safety Techniques
-              - Governance & Policy
-              - Deception & Misalignment
-              - AI Capabilities & Behavior
-              - Risks & Strategy
-              - Forecasting
-              - AI & Society
-              - Field Building
-              - Other
-            example: Interpretability
+        - $ref: "#/components/parameters/FilterCategory"
         - $ref: "#/components/parameters/FilterPublishedAfter"
         - $ref: "#/components/parameters/FilterPublishedBefore"
       responses:
@@ -113,23 +95,20 @@ paths:
       summary: Get similar articles
       description: |
         Find articles similar to the given article using vector similarity search.
-        Returns up to 10 similar articles.
+        Always returns up to 10 similar articles.
       operationId: getSimilarArticles
       security:
         - {}
         - BearerAuth: []
       parameters:
         - $ref: "#/components/parameters/ArticleId"
-        - $ref: "#/components/parameters/Limit"
       responses:
         "200":
-          description: List of similar articles
+          description: List of similar articles (up to 10)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ArticlesListResponse"
-        "404":
-          $ref: "#/components/responses/NotFound"
         "500":
           $ref: "#/components/responses/InternalError"
 
@@ -164,10 +143,6 @@ paths:
           $ref: "#/components/responses/InternalError"
         "503":
           description: Embedding service unavailable (null driver configured)
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
 
   /v1/articles/recommended:
     get:
@@ -176,19 +151,10 @@ paths:
       summary: Get personalized recommendations
       description: |
         Get personalized article recommendations based on the user's rating history.
-        Returns up to 100 recommended articles.
+        Always returns up to 100 recommended articles.
       operationId: getRecommendedArticles
       security:
         - BearerAuth: []
-      parameters:
-        - name: limit
-          in: query
-          description: Maximum number of recommendations to return
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 100
       responses:
         "200":
           description: List of recommended articles
@@ -483,18 +449,17 @@ paths:
         - $ref: "#/components/parameters/FilterSourcesBlocklist"
         - $ref: "#/components/parameters/FilterTitleFulltext"
         - $ref: "#/components/parameters/FilterAuthorsFulltext"
+        - $ref: "#/components/parameters/FilterCategory"
         - $ref: "#/components/parameters/FilterPublishedAfter"
         - $ref: "#/components/parameters/FilterPublishedBefore"
       responses:
         "200":
           description: RSS feed of alignment research articles
           content:
-            application/rss+xml:
-              schema:
-                type: string
             text/xml:
               schema:
                 type: string
+                description: RSS 2.0 XML feed
         "400":
           $ref: "#/components/responses/BadRequest"
         "500":
@@ -541,15 +506,6 @@ components:
       schema:
         type: string
         example: published_at_desc
-    Limit:
-      name: limit
-      in: query
-      description: Maximum number of results to return
-      schema:
-        type: integer
-        minimum: 1
-        maximum: 100
-        default: 10
     ArticleId:
       name: article_id
       in: path
@@ -557,6 +513,26 @@ components:
       description: Article hash ID
       schema:
         type: string
+    FilterCategory:
+      name: filter_category
+      in: query
+      description: |
+        Filter by LLM-assigned category. Current categories are listed in the
+        schema enum; more may be added over time.
+      schema:
+        type: string
+        enum:
+          - Interpretability
+          - Safety Techniques
+          - Governance & Policy
+          - Deception & Misalignment
+          - AI Capabilities & Behavior
+          - Risks & Strategy
+          - Forecasting
+          - AI & Society
+          - Field Building
+          - Other
+        example: Interpretability
     FilterSourcesAllowlist:
       name: filter_sources_allowlist
       in: query
@@ -618,7 +594,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/Error"
+            $ref: "#/components/schemas/ForbiddenError"
     NotFound:
       description: Article not found
       content:
@@ -777,10 +753,12 @@ components:
         last_used_at:
           type: string
           format: date-time
+          nullable: true
           description: When the token was last used (null if never used)
         expires_at:
           type: string
           format: date-time
+          nullable: true
           description: When the token expires (null if no expiration)
         revoked:
           type: boolean
@@ -853,6 +831,17 @@ components:
           minimum: 1
           maximum: 100
           default: 10
+
+    ForbiddenError:
+      description: Error response for forbidden actions (e.g. API token used on token management endpoints).
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Human-readable explanation of why access is forbidden
+          example: "This endpoint cannot be accessed with an API token."
 
     Error:
       description: Error response returned by the API.
