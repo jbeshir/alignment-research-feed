@@ -47,7 +47,6 @@ func (c *SetArticleRating) Execute(ctx context.Context, req SetArticleRatingRequ
 	if err != nil {
 		logger.WarnContext(ctx, "failed to fetch article vector, proceeding without vector",
 			"error", err, "articleHashID", req.ArticleHashID)
-		vector = nil
 	}
 	if vector == nil {
 		logger.DebugContext(ctx, "article has no vector", "articleHashID", req.ArticleHashID)
