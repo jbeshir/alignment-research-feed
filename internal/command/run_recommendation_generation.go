@@ -100,7 +100,10 @@ func (c *RunRecommendationGeneration) generateForUser(ctx context.Context, userI
 		return fmt.Errorf("generating recommendations: %w", err)
 	}
 
-	if err := storePrecomputedRecommendations(ctx, c.PrecomputedWriter, c.RegenerationStatus, userID, scoredArticles); err != nil {
+	err = storePrecomputedRecommendations(
+		ctx, c.PrecomputedWriter, c.RegenerationStatus, userID, scoredArticles,
+	)
+	if err != nil {
 		return err
 	}
 

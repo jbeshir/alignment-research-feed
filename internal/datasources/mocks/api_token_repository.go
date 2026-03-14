@@ -7,8 +7,8 @@ package mocks
 import (
 	"context"
 
-	"github.com/jbeshir/alignment-research-feed/internal/domain"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources"
+	"github.com/jbeshir/alignment-research-feed/internal/domain"
 	mock "github.com/stretchr/testify/mock"
 )
 

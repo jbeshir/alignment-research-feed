@@ -6,9 +6,9 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/joho/godotenv"
 	"github.com/jbeshir/alignment-research-feed/internal/app"
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
+	"github.com/joho/godotenv"
 	"golang.org/x/sync/errgroup"
 )
 

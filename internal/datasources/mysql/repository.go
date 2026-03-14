@@ -40,11 +40,11 @@ func (r *Repository) SetArticleRead(ctx context.Context, hashID, userID string, 
 
 // interactionState captures the current state of a user-article interaction.
 type interactionState struct {
-	currentHaveRead  bool
-	currentDateRead  sql.NullTime
-	currentThumbsUp  bool
+	currentHaveRead   bool
+	currentDateRead   sql.NullTime
+	currentThumbsUp   bool
 	currentThumbsDown bool
-	currentDateRated sql.NullTime
+	currentDateRated  sql.NullTime
 }
 
 // SetArticleRating atomically sets thumbs up/down.
@@ -226,7 +226,7 @@ func (r *Repository) ListLatestArticleIDs(
 	if err != nil {
 		return nil, fmt.Errorf("running articles query: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	articleIDs := []string{}
 	for rows.Next() {
@@ -487,15 +487,19 @@ type vectorRow interface {
 	getDateRated() sql.NullTime
 }
 
-type thumbsUpRow struct{ queries.GetUserArticleVectorsByThumbsUpRow }
+type thumbsUpRow struct {
+	queries.GetUserArticleVectorsByThumbsUpRow
+}
 
-func (r thumbsUpRow) getArticleHashID() string  { return r.ArticleHashID }
+func (r thumbsUpRow) getArticleHashID() string   { return r.ArticleHashID }
 func (r thumbsUpRow) getVector() sql.NullString  { return r.Vector }
 func (r thumbsUpRow) getDateRated() sql.NullTime { return r.DateRated }
 
-type thumbsDownRow struct{ queries.GetUserArticleVectorsByThumbsDownRow }
+type thumbsDownRow struct {
+	queries.GetUserArticleVectorsByThumbsDownRow
+}
 
-func (r thumbsDownRow) getArticleHashID() string  { return r.ArticleHashID }
+func (r thumbsDownRow) getArticleHashID() string   { return r.ArticleHashID }
 func (r thumbsDownRow) getVector() sql.NullString  { return r.Vector }
 func (r thumbsDownRow) getDateRated() sql.NullTime { return r.DateRated }
 
@@ -612,7 +616,9 @@ func (r *Repository) DeleteUserInterestClusters(ctx context.Context, userID stri
 // ============================================
 
 // UpsertPrecomputedRecommendation stores or updates a precomputed recommendation.
-func (r *Repository) UpsertPrecomputedRecommendation(ctx context.Context, params datasources.UpsertPrecomputedRecommendationParams) error {
+func (r *Repository) UpsertPrecomputedRecommendation(
+	ctx context.Context, params datasources.UpsertPrecomputedRecommendationParams,
+) error {
 	return r.queries.UpsertPrecomputedRecommendation(ctx, queries.UpsertPrecomputedRecommendationParams{
 		UserID:        params.UserID,
 		ArticleHashID: params.ArticleHashID,

@@ -16,12 +16,12 @@ import (
 
 // Article represents an article from the alignment research feed.
 type Article struct {
-	HashID      string    `json:"hash_id"`
-	Title       string    `json:"title"`
-	Link        string    `json:"link"`
-	TextStart   string    `json:"text_start"`
-	Authors     string    `json:"authors"`
-	Source      string    `json:"source"`
+	HashID      string     `json:"hash_id"`
+	Title       string     `json:"title"`
+	Link        string     `json:"link"`
+	TextStart   string     `json:"text_start"`
+	Authors     string     `json:"authors"`
+	Source      string     `json:"source"`
 	PublishedAt *time.Time `json:"published_at"`
 
 	Summary      string   `json:"summary,omitempty"`
@@ -164,6 +164,7 @@ func (c *Client) SearchArticles(ctx context.Context, filters SearchFilters) ([]A
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = resp.Body.Close() }()
 
 	var result ArticlesResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -179,6 +180,7 @@ func (c *Client) GetArticle(ctx context.Context, articleID string) (*Article, er
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = resp.Body.Close() }()
 
 	var article Article
 	if err := c.handleResponse(resp, &article); err != nil {
@@ -204,6 +206,7 @@ func (c *Client) GetSimilarArticles(ctx context.Context, articleID string, limit
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = resp.Body.Close() }()
 
 	var result ArticlesResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -232,6 +235,7 @@ func (c *Client) SemanticSearch(ctx context.Context, text string, limit int) ([]
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = resp.Body.Close() }()
 
 	var result ArticlesResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -257,6 +261,7 @@ func (c *Client) GetRecommendations(ctx context.Context, limit int) ([]Article, 
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = resp.Body.Close() }()
 
 	var result ArticlesResponse
 	if err := c.handleResponse(resp, &result); err != nil {
@@ -269,20 +274,22 @@ func (c *Client) GetRecommendations(ctx context.Context, limit int) ([]Article, 
 // RateArticle sets the thumbs up or thumbs down rating for an article.
 func (c *Client) RateArticle(ctx context.Context, articleID string, thumbsUp, thumbsDown bool) error {
 	upPath := fmt.Sprintf("/v1/articles/%s/thumbs_up/%t", url.PathEscape(articleID), thumbsUp)
-	resp, err := c.doRequest(ctx, http.MethodPost, upPath)
+	upResp, err := c.doRequest(ctx, http.MethodPost, upPath)
 	if err != nil {
 		return err
 	}
-	if err := c.handleResponse(resp, nil); err != nil {
+	defer func() { _ = upResp.Body.Close() }()
+	if err := c.handleResponse(upResp, nil); err != nil {
 		return fmt.Errorf("setting thumbs_up: %w", err)
 	}
 
 	downPath := fmt.Sprintf("/v1/articles/%s/thumbs_down/%t", url.PathEscape(articleID), thumbsDown)
-	resp, err = c.doRequest(ctx, http.MethodPost, downPath)
+	downResp, err := c.doRequest(ctx, http.MethodPost, downPath)
 	if err != nil {
 		return err
 	}
-	if err := c.handleResponse(resp, nil); err != nil {
+	defer func() { _ = downResp.Body.Close() }()
+	if err := c.handleResponse(downResp, nil); err != nil {
 		return fmt.Errorf("setting thumbs_down: %w", err)
 	}
 
@@ -296,6 +303,7 @@ func (c *Client) MarkRead(ctx context.Context, articleID string, read bool) erro
 	if err != nil {
 		return err
 	}
+	defer func() { _ = resp.Body.Close() }()
 	return c.handleResponse(resp, nil)
 }
 
@@ -317,6 +325,7 @@ func (c *Client) listArticlesByPath(ctx context.Context, path string, page, page
 	if err != nil {
 		return nil, err
 	}
+	defer func() { _ = resp.Body.Close() }()
 
 	var result ArticlesResponse
 	if err := c.handleResponse(resp, &result); err != nil {

@@ -307,4 +307,3 @@ func (c *GenerateRecommendations) rankAndDeduplicate(
 
 	return unique
 }
-
