@@ -203,13 +203,10 @@ func (s *Server) handleRateArticle(
 	switch strings.ToLower(rating) {
 	case "up":
 		thumbsUp = true
-		thumbsDown = false
 	case "down":
-		thumbsUp = false
 		thumbsDown = true
 	case "none":
-		thumbsUp = false
-		thumbsDown = false
+		// both default to false — clears rating
 	default:
 		return mcp.NewToolResultError("rating must be 'up', 'down', or 'none'"), nil
 	}

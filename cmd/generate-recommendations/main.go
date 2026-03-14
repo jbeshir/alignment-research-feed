@@ -7,16 +7,16 @@ import (
 	"math/rand/v2"
 	"os"
 
+	"github.com/joho/godotenv"
 	"github.com/jbeshir/alignment-research-feed/internal/app"
 	"github.com/jbeshir/alignment-research-feed/internal/command"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources/mysql"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources/pinecone"
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
-
-	_ "github.com/joho/godotenv/autoload"
 )
 
 func main() {
+	_ = godotenv.Load()
 	ctx := context.Background()
 
 	// Setup logger

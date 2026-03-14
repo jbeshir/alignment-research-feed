@@ -6,14 +6,14 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/joho/godotenv"
 	"github.com/jbeshir/alignment-research-feed/internal/app"
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
 	"golang.org/x/sync/errgroup"
-
-	_ "github.com/joho/godotenv/autoload"
 )
 
 func main() {
+	_ = godotenv.Load()
 	ctx := context.Background()
 
 	var logLevel slog.Level
