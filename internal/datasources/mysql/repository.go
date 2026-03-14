@@ -195,25 +195,15 @@ func (r *Repository) ListLatestArticleIDs(
 	if err != nil {
 		return nil, fmt.Errorf("running articles query: %w", err)
 	}
-	defer func() {
-		if closeErr := rows.Close(); closeErr != nil {
-			// Log the error but don't override the main error
-			_ = closeErr // Explicitly ignore the error
-		}
-	}()
+	defer rows.Close()
 
 	articleIDs := []string{}
 	for rows.Next() {
 		var id string
-		if err := rows.Scan(
-			&id,
-		); err != nil {
+		if err := rows.Scan(&id); err != nil {
 			return nil, fmt.Errorf("scanning articles: %w", err)
 		}
 		articleIDs = append(articleIDs, id)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, fmt.Errorf("closing rows iterator: %w", err)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterating rows: %w", err)
