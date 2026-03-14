@@ -6,8 +6,8 @@ package mocks
 
 import (
 	"context"
-	"time"
 
+	"github.com/jbeshir/alignment-research-feed/internal/datasources"
 	mock "github.com/stretchr/testify/mock"
 )
 
@@ -39,16 +39,16 @@ func (_m *APITokenCreator) EXPECT() *APITokenCreator_Expecter {
 }
 
 // CreateAPIToken provides a mock function for the type APITokenCreator
-func (_mock *APITokenCreator) CreateAPIToken(ctx context.Context, id string, userID string, tokenHash string, tokenPrefix string, name *string, expiresAt *time.Time) error {
-	ret := _mock.Called(ctx, id, userID, tokenHash, tokenPrefix, name, expiresAt)
+func (_mock *APITokenCreator) CreateAPIToken(ctx context.Context, params datasources.CreateAPITokenParams) error {
+	ret := _mock.Called(ctx, params)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateAPIToken")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, string, *string, *time.Time) error); ok {
-		r0 = returnFunc(ctx, id, userID, tokenHash, tokenPrefix, name, expiresAt)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, datasources.CreateAPITokenParams) error); ok {
+		r0 = returnFunc(ctx, params)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -62,55 +62,14 @@ type APITokenCreator_CreateAPIToken_Call struct {
 
 // CreateAPIToken is a helper method to define mock.On call
 //   - ctx context.Context
-//   - id string
-//   - userID string
-//   - tokenHash string
-//   - tokenPrefix string
-//   - name *string
-//   - expiresAt *time.Time
-func (_e *APITokenCreator_Expecter) CreateAPIToken(ctx interface{}, id interface{}, userID interface{}, tokenHash interface{}, tokenPrefix interface{}, name interface{}, expiresAt interface{}) *APITokenCreator_CreateAPIToken_Call {
-	return &APITokenCreator_CreateAPIToken_Call{Call: _e.mock.On("CreateAPIToken", ctx, id, userID, tokenHash, tokenPrefix, name, expiresAt)}
+//   - params datasources.CreateAPITokenParams
+func (_e *APITokenCreator_Expecter) CreateAPIToken(ctx interface{}, params interface{}) *APITokenCreator_CreateAPIToken_Call {
+	return &APITokenCreator_CreateAPIToken_Call{Call: _e.mock.On("CreateAPIToken", ctx, params)}
 }
 
-func (_c *APITokenCreator_CreateAPIToken_Call) Run(run func(ctx context.Context, id string, userID string, tokenHash string, tokenPrefix string, name *string, expiresAt *time.Time)) *APITokenCreator_CreateAPIToken_Call {
+func (_c *APITokenCreator_CreateAPIToken_Call) Run(run func(ctx context.Context, params datasources.CreateAPITokenParams)) *APITokenCreator_CreateAPIToken_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		var arg2 string
-		if args[2] != nil {
-			arg2 = args[2].(string)
-		}
-		var arg3 string
-		if args[3] != nil {
-			arg3 = args[3].(string)
-		}
-		var arg4 string
-		if args[4] != nil {
-			arg4 = args[4].(string)
-		}
-		var arg5 *string
-		if args[5] != nil {
-			arg5 = args[5].(*string)
-		}
-		var arg6 *time.Time
-		if args[6] != nil {
-			arg6 = args[6].(*time.Time)
-		}
-		run(
-			arg0,
-			arg1,
-			arg2,
-			arg3,
-			arg4,
-			arg5,
-			arg6,
-		)
+		run(args[0].(context.Context), args[1].(datasources.CreateAPITokenParams))
 	})
 	return _c
 }
@@ -120,7 +79,7 @@ func (_c *APITokenCreator_CreateAPIToken_Call) Return(err error) *APITokenCreato
 	return _c
 }
 
-func (_c *APITokenCreator_CreateAPIToken_Call) RunAndReturn(run func(ctx context.Context, id string, userID string, tokenHash string, tokenPrefix string, name *string, expiresAt *time.Time) error) *APITokenCreator_CreateAPIToken_Call {
+func (_c *APITokenCreator_CreateAPIToken_Call) RunAndReturn(run func(ctx context.Context, params datasources.CreateAPITokenParams) error) *APITokenCreator_CreateAPIToken_Call {
 	_c.Call.Return(run)
 	return _c
 }

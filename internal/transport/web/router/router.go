@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jbeshir/alignment-research-feed/internal/command"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources"
+	"github.com/jbeshir/alignment-research-feed/internal/domain"
 	"github.com/jbeshir/alignment-research-feed/internal/transport/web/controller"
 )
 
@@ -79,13 +80,13 @@ func MakeRouter(
 	r.Handle("/v1/articles/{article_id}/thumbs_up/{thumbs_up}", requireAuthMiddleware(controller.ArticleRatingSet{
 		Fetcher:      dataset,
 		SetRatingCmd: setRatingCmd,
-		RatingType:   controller.RatingTypeThumbsUp,
+		RatingType:   domain.RatingTypeThumbsUp,
 	})).Methods(http.MethodPost, http.MethodOptions)
 
 	r.Handle("/v1/articles/{article_id}/thumbs_down/{thumbs_down}", requireAuthMiddleware(controller.ArticleRatingSet{
 		Fetcher:      dataset,
 		SetRatingCmd: setRatingCmd,
-		RatingType:   controller.RatingTypeThumbsDown,
+		RatingType:   domain.RatingTypeThumbsDown,
 	})).Methods(http.MethodPost, http.MethodOptions)
 
 	rssFeeds := []controller.RSS{

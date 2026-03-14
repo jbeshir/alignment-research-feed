@@ -15,13 +15,13 @@ const (
 	boolFalse = "false"
 )
 
-type feedbackSetter func(ctx context.Context, hashID string, userID string, value bool) error
+type articleBoolSetter func(ctx context.Context, hashID string, userID string, value bool) error
 
-func handleFeedback(
+func setArticleBoolFromRequest(
 	w http.ResponseWriter,
 	r *http.Request,
 	fetcher datasources.ArticleFetcher,
-	setter feedbackSetter,
+	setter articleBoolSetter,
 	paramName string,
 ) {
 	vars := mux.Vars(r)
@@ -48,7 +48,12 @@ func handleFeedback(
 		return
 	}
 
-	err = setter(ctx, id, domain.UserIDFromContext(r.Context()), value)
+	userID := domain.UserIDFromContext(r.Context())
+	if userID == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	err = setter(ctx, id, userID, value)
 	if err != nil {
 		logger.ErrorContext(ctx, "unable to set feedback", "error", err)
 

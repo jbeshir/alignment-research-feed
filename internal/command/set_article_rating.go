@@ -9,11 +9,13 @@ import (
 )
 
 // SetArticleRatingRequest is the request for the SetArticleRating command.
+// ThumbsUp and ThumbsDown are pointers: nil means "don't change",
+// true/false means "set to this value".
 type SetArticleRatingRequest struct {
 	UserID        string
 	ArticleHashID string
-	ThumbsUp      bool
-	ThumbsDown    bool
+	ThumbsUp      *bool
+	ThumbsDown    *bool
 }
 
 // SetArticleRating handles setting article ratings (thumbs up/down) with vector sync.
@@ -47,7 +49,6 @@ func (c *SetArticleRating) Execute(ctx context.Context, req SetArticleRatingRequ
 	if err != nil {
 		logger.WarnContext(ctx, "failed to fetch article vector, proceeding without vector",
 			"error", err, "articleHashID", req.ArticleHashID)
-		vector = nil
 	}
 	if vector == nil {
 		logger.DebugContext(ctx, "article has no vector", "articleHashID", req.ArticleHashID)
@@ -59,8 +60,7 @@ func (c *SetArticleRating) Execute(ctx context.Context, req SetArticleRatingRequ
 		return Empty{}, fmt.Errorf("setting article rating: %w", err)
 	}
 
-	logger.DebugContext(ctx, "set article rating",
-		"articleHashID", req.ArticleHashID, "thumbsUp", req.ThumbsUp, "thumbsDown", req.ThumbsDown)
+	logger.DebugContext(ctx, "set article rating", "articleHashID", req.ArticleHashID)
 
 	// 3. Mark for regeneration (best-effort)
 	if err := c.RegenerationMarker.MarkUserNeedsRegeneration(ctx, req.UserID); err != nil {

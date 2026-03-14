@@ -9,17 +9,10 @@ import (
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
 )
 
-type RatingType int
-
-const (
-	RatingTypeThumbsUp RatingType = iota
-	RatingTypeThumbsDown
-)
-
 type ArticleRatingSet struct {
 	Fetcher      datasources.ArticleFetcher
 	SetRatingCmd command.Command[command.SetArticleRatingRequest, command.Empty]
-	RatingType   RatingType
+	RatingType   domain.UserRatingType
 }
 
 func (c ArticleRatingSet) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -28,21 +21,16 @@ func (c ArticleRatingSet) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	logger := domain.LoggerFromContext(r.Context())
 	ctx := domain.ContextWithLogger(r.Context(), logger.With("article_id", articleID))
 
-	var varName string
-	if c.RatingType == RatingTypeThumbsUp {
-		varName = "thumbs_up"
-	} else {
-		varName = "thumbs_down"
-	}
+	paramName := string(c.RatingType)
 
 	var ratingValue bool
-	switch vars[varName] {
+	switch vars[paramName] {
 	case boolTrue:
 		ratingValue = true
 	case boolFalse:
 		ratingValue = false
 	default:
-		logger.ErrorContext(ctx, "invalid "+varName+" value", "value", vars[varName])
+		logger.ErrorContext(ctx, "invalid "+paramName+" value", "value", vars[paramName])
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -55,14 +43,18 @@ func (c ArticleRatingSet) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := domain.UserIDFromContext(r.Context())
+	if userID == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 	req := command.SetArticleRatingRequest{
 		UserID:        userID,
 		ArticleHashID: articleID,
 	}
-	if c.RatingType == RatingTypeThumbsUp {
-		req.ThumbsUp = ratingValue
+	if c.RatingType == domain.RatingTypeThumbsUp {
+		req.ThumbsUp = &ratingValue
 	} else {
-		req.ThumbsDown = ratingValue
+		req.ThumbsDown = &ratingValue
 	}
 
 	if _, err := c.SetRatingCmd.Execute(ctx, req); err != nil {

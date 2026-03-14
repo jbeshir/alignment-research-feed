@@ -3,7 +3,6 @@ package command
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/jbeshir/alignment-research-feed/internal/datasources"
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
@@ -101,39 +100,11 @@ func (c *RunRecommendationGeneration) generateForUser(ctx context.Context, userI
 		return fmt.Errorf("generating recommendations: %w", err)
 	}
 
-	// Delete existing precomputed recommendations for this user
-	if err := c.PrecomputedWriter.DeleteUserPrecomputedRecommendations(ctx, userID); err != nil {
-		return fmt.Errorf("deleting existing recommendations: %w", err)
-	}
-
-	if len(scoredArticles) == 0 {
-		// No recommendations generated - still mark as regenerated
-		if err := c.RegenerationStatus.MarkUserRegenerated(ctx, userID); err != nil {
-			return fmt.Errorf("marking user as regenerated: %w", err)
-		}
-		logger.DebugContext(ctx, "no recommendations generated for user", "user_id", userID)
-		return nil
-	}
-
-	// Store the new recommendations
-	generatedAt := time.Now()
-	for position, article := range scoredArticles {
-		if err := c.PrecomputedWriter.UpsertPrecomputedRecommendation(
-			ctx,
-			userID,
-			article.HashID,
-			article.Score,
-			article.Source,
-			position,
-			generatedAt,
-		); err != nil {
-			return fmt.Errorf("storing recommendation at position %d: %w", position, err)
-		}
-	}
-
-	// Mark user as regenerated
-	if err := c.RegenerationStatus.MarkUserRegenerated(ctx, userID); err != nil {
-		return fmt.Errorf("marking user as regenerated: %w", err)
+	err = storePrecomputedRecommendations(
+		ctx, c.PrecomputedWriter, c.RegenerationStatus, userID, scoredArticles,
+	)
+	if err != nil {
+		return err
 	}
 
 	logger.DebugContext(ctx, "stored recommendations for user",

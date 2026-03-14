@@ -12,7 +12,6 @@ import (
 
 	"github.com/auth0/go-jwt-middleware/v2/jwks"
 	"github.com/auth0/go-jwt-middleware/v2/validator"
-	"github.com/jbeshir/alignment-research-feed/internal/command"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources"
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
 )
@@ -123,7 +122,7 @@ func NewAPITokenValidator(
 
 	return func(r *http.Request) (*AuthResult, error) {
 		authHeader := r.Header.Get("Authorization")
-		if !strings.HasPrefix(authHeader, "Bearer "+command.APITokenPrefix) {
+		if !strings.HasPrefix(authHeader, "Bearer "+domain.APITokenPrefix) {
 			return nil, nil
 		}
 

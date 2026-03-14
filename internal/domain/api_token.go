@@ -2,6 +2,9 @@ package domain
 
 import "time"
 
+// APITokenPrefix is the prefix for API tokens in the Authorization header.
+const APITokenPrefix = "user_api|"
+
 // APIToken represents a user's API token for programmatic access.
 type APIToken struct {
 	ID         string     `json:"id"`

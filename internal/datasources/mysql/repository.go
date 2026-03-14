@@ -40,14 +40,18 @@ func (r *Repository) SetArticleRead(ctx context.Context, hashID, userID string, 
 
 // interactionState captures the current state of a user-article interaction.
 type interactionState struct {
-	currentHaveRead bool
-	currentDateRead sql.NullTime
+	currentHaveRead   bool
+	currentDateRead   sql.NullTime
+	currentThumbsUp   bool
+	currentThumbsDown bool
+	currentDateRated  sql.NullTime
 }
 
 // SetArticleRating atomically sets thumbs up/down.
+// nil pointers mean "don't change". Setting either to true forces the other to false.
 func (r *Repository) SetArticleRating(
 	ctx context.Context, userID, articleHashID string,
-	thumbsUp, thumbsDown bool, vector []float32,
+	thumbsUp, thumbsDown *bool, vector []float32,
 ) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -88,23 +92,50 @@ func (r *Repository) getCurrentInteractionState(
 		return interactionState{}, fmt.Errorf("getting current interaction: %w", err)
 	}
 	return interactionState{
-		currentHaveRead: current.HaveRead,
-		currentDateRead: current.DateRead,
+		currentHaveRead:   current.HaveRead,
+		currentDateRead:   current.DateRead,
+		currentThumbsUp:   current.ThumbsUp,
+		currentThumbsDown: current.ThumbsDown,
+		currentDateRated:  current.DateRated,
 	}, nil
+}
+
+// resolveRating merges a rating update with existing state.
+// nil means "don't change". Setting to true forces the opposite to false.
+func resolveRating(thumbsUp, thumbsDown *bool, state interactionState) (up, down bool) {
+	up = state.currentThumbsUp
+	down = state.currentThumbsDown
+
+	if thumbsUp != nil {
+		up = *thumbsUp
+		if up {
+			down = false
+		}
+	}
+	if thumbsDown != nil {
+		down = *thumbsDown
+		if down {
+			up = false
+		}
+	}
+
+	return up, down
 }
 
 // upsertInteraction stores the interaction record.
 func (r *Repository) upsertInteraction(
 	ctx context.Context, qtx *queries.Queries, userID, articleHashID string,
-	thumbsUp, thumbsDown bool, vector []float32, state interactionState,
+	thumbsUp, thumbsDown *bool, vector []float32, state interactionState,
 ) error {
 	var vectorStr sql.NullString
 	if vector != nil {
 		vectorStr = sql.NullString{String: string(float32SliceToBytes(vector)), Valid: true}
 	}
 
-	var dateRated sql.NullTime
-	if thumbsUp || thumbsDown {
+	resolvedUp, resolvedDown := resolveRating(thumbsUp, thumbsDown, state)
+
+	dateRated := state.currentDateRated
+	if resolvedUp || resolvedDown {
 		dateRated = sql.NullTime{Time: time.Now(), Valid: true}
 	}
 
@@ -112,8 +143,8 @@ func (r *Repository) upsertInteraction(
 		UserID:        userID,
 		ArticleHashID: articleHashID,
 		HaveRead:      state.currentHaveRead,
-		ThumbsUp:      thumbsUp,
-		ThumbsDown:    thumbsDown,
+		ThumbsUp:      resolvedUp,
+		ThumbsDown:    resolvedDown,
 		DateRead:      state.currentDateRead,
 		DateRated:     dateRated,
 		Vector:        vectorStr,
@@ -195,25 +226,15 @@ func (r *Repository) ListLatestArticleIDs(
 	if err != nil {
 		return nil, fmt.Errorf("running articles query: %w", err)
 	}
-	defer func() {
-		if closeErr := rows.Close(); closeErr != nil {
-			// Log the error but don't override the main error
-			_ = closeErr // Explicitly ignore the error
-		}
-	}()
+	defer func() { _ = rows.Close() }()
 
 	articleIDs := []string{}
 	for rows.Next() {
 		var id string
-		if err := rows.Scan(
-			&id,
-		); err != nil {
+		if err := rows.Scan(&id); err != nil {
 			return nil, fmt.Errorf("scanning articles: %w", err)
 		}
 		articleIDs = append(articleIDs, id)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, fmt.Errorf("closing rows iterator: %w", err)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterating rows: %w", err)
@@ -252,7 +273,11 @@ func (r *Repository) FetchArticlesByID(
 
 		var keyPoints []string
 		if dbArticle.KeyPoints.Valid && dbArticle.KeyPoints.String != "" {
-			_ = json.Unmarshal([]byte(dbArticle.KeyPoints.String), &keyPoints)
+			if err := json.Unmarshal([]byte(dbArticle.KeyPoints.String), &keyPoints); err != nil {
+				logger := domain.LoggerFromContext(ctx)
+				logger.WarnContext(ctx, "failed to parse key_points JSON",
+					"article_hash_id", dbArticle.HashID, "error", err)
+			}
 		}
 
 		var publishedAt *time.Time
@@ -311,7 +336,7 @@ func (r *Repository) TotalMatchingArticles(
 	if err != nil {
 		return 0, fmt.Errorf("counting matching articles: %w", err)
 	}
-	return count, err
+	return count, nil
 }
 
 func buildArticlesConditions(sb *sqlbuilder.SelectBuilder, filters domain.ArticleFilters) []string {
@@ -456,47 +481,69 @@ func (r *Repository) GetUserArticleVectorsByType(
 	}
 }
 
+type vectorRow interface {
+	getArticleHashID() string
+	getVector() sql.NullString
+	getDateRated() sql.NullTime
+}
+
+type thumbsUpRow struct {
+	queries.GetUserArticleVectorsByThumbsUpRow
+}
+
+func (r thumbsUpRow) getArticleHashID() string   { return r.ArticleHashID }
+func (r thumbsUpRow) getVector() sql.NullString  { return r.Vector }
+func (r thumbsUpRow) getDateRated() sql.NullTime { return r.DateRated }
+
+type thumbsDownRow struct {
+	queries.GetUserArticleVectorsByThumbsDownRow
+}
+
+func (r thumbsDownRow) getArticleHashID() string   { return r.ArticleHashID }
+func (r thumbsDownRow) getVector() sql.NullString  { return r.Vector }
+func (r thumbsDownRow) getDateRated() sql.NullTime { return r.DateRated }
+
 func convertVectorRows(
 	rows []queries.GetUserArticleVectorsByThumbsUpRow,
 	ratingType domain.UserRatingType,
 ) ([]domain.UserArticleRating, error) {
-	result := make([]domain.UserArticleRating, 0, len(rows))
-	for _, row := range rows {
-		if !row.Vector.Valid {
-			continue // Skip rows without vectors
-		}
-		vector, err := bytesToFloat32Slice([]byte(row.Vector.String))
-		if err != nil {
-			return nil, fmt.Errorf("decoding vector for article %s: %w", row.ArticleHashID, err)
-		}
-		result = append(result, domain.UserArticleRating{
-			ArticleHashID: row.ArticleHashID,
-			Vector:        vector,
-			RatingType:    ratingType,
-			RatedAt:       row.DateRated.Time,
-		})
+	adapted := make([]vectorRow, len(rows))
+	for i := range rows {
+		adapted[i] = thumbsUpRow{rows[i]}
 	}
-	return result, nil
+	return convertVectorRowSlice(adapted, ratingType)
 }
 
 func convertVectorRowsDown(
 	rows []queries.GetUserArticleVectorsByThumbsDownRow,
 	ratingType domain.UserRatingType,
 ) ([]domain.UserArticleRating, error) {
+	adapted := make([]vectorRow, len(rows))
+	for i := range rows {
+		adapted[i] = thumbsDownRow{rows[i]}
+	}
+	return convertVectorRowSlice(adapted, ratingType)
+}
+
+func convertVectorRowSlice(
+	rows []vectorRow,
+	ratingType domain.UserRatingType,
+) ([]domain.UserArticleRating, error) {
 	result := make([]domain.UserArticleRating, 0, len(rows))
 	for _, row := range rows {
-		if !row.Vector.Valid {
-			continue // Skip rows without vectors
+		v := row.getVector()
+		if !v.Valid {
+			continue
 		}
-		vector, err := bytesToFloat32Slice([]byte(row.Vector.String))
+		vector, err := bytesToFloat32Slice([]byte(v.String))
 		if err != nil {
-			return nil, fmt.Errorf("decoding vector for article %s: %w", row.ArticleHashID, err)
+			return nil, fmt.Errorf("decoding vector for article %s: %w", row.getArticleHashID(), err)
 		}
 		result = append(result, domain.UserArticleRating{
-			ArticleHashID: row.ArticleHashID,
+			ArticleHashID: row.getArticleHashID(),
 			Vector:        vector,
 			RatingType:    ratingType,
-			RatedAt:       row.DateRated.Time,
+			RatedAt:       row.getDateRated().Time,
 		})
 	}
 	return result, nil
@@ -570,20 +617,15 @@ func (r *Repository) DeleteUserInterestClusters(ctx context.Context, userID stri
 
 // UpsertPrecomputedRecommendation stores or updates a precomputed recommendation.
 func (r *Repository) UpsertPrecomputedRecommendation(
-	ctx context.Context,
-	userID, articleHashID string,
-	score float64,
-	source string,
-	position int,
-	generatedAt time.Time,
+	ctx context.Context, params datasources.UpsertPrecomputedRecommendationParams,
 ) error {
 	return r.queries.UpsertPrecomputedRecommendation(ctx, queries.UpsertPrecomputedRecommendationParams{
-		UserID:        userID,
-		ArticleHashID: articleHashID,
-		Score:         score,
-		Source:        source,
-		Position:      int32(position), //nolint:gosec // positions are small
-		GeneratedAt:   generatedAt,
+		UserID:        params.UserID,
+		ArticleHashID: params.ArticleHashID,
+		Score:         params.Score,
+		Source:        params.Source,
+		Position:      int32(params.Position), //nolint:gosec // positions are small
+		GeneratedAt:   params.GeneratedAt,
 	})
 }
 
@@ -674,27 +716,22 @@ func (r *Repository) ListUsersNeedingRegeneration(ctx context.Context) ([]string
 // ============================================
 
 // CreateAPIToken creates a new API token.
-func (r *Repository) CreateAPIToken(
-	ctx context.Context,
-	id, userID, tokenHash, tokenPrefix string,
-	name *string,
-	expiresAt *time.Time,
-) error {
+func (r *Repository) CreateAPIToken(ctx context.Context, params datasources.CreateAPITokenParams) error {
 	var nameStr sql.NullString
-	if name != nil {
-		nameStr = sql.NullString{String: *name, Valid: true}
+	if params.Name != nil {
+		nameStr = sql.NullString{String: *params.Name, Valid: true}
 	}
 
 	var expiresAtTime sql.NullTime
-	if expiresAt != nil {
-		expiresAtTime = sql.NullTime{Time: *expiresAt, Valid: true}
+	if params.ExpiresAt != nil {
+		expiresAtTime = sql.NullTime{Time: *params.ExpiresAt, Valid: true}
 	}
 
 	return r.queries.CreateAPIToken(ctx, queries.CreateAPITokenParams{
-		ID:          id,
-		UserID:      userID,
-		TokenHash:   tokenHash,
-		TokenPrefix: tokenPrefix,
+		ID:          params.ID,
+		UserID:      params.UserID,
+		TokenHash:   params.TokenHash,
+		TokenPrefix: params.TokenPrefix,
 		Name:        nameStr,
 		ExpiresAt:   expiresAtTime,
 	})

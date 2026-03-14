@@ -38,7 +38,6 @@ func (s *Server) Run() error {
 }
 
 func (s *Server) registerTools() {
-	// search_articles - Search alignment research articles
 	s.mcpServer.AddTool(mcp.NewTool("search_articles",
 		mcp.WithDescription(
 			"Search alignment research articles by keyword, source, or date range. "+
@@ -76,7 +75,6 @@ func (s *Server) registerTools() {
 		),
 	), s.handleSearchArticles)
 
-	// get_article - Get full article details
 	s.mcpServer.AddTool(mcp.NewTool("get_article",
 		mcp.WithDescription(
 			"Get full details of a specific article by its ID (hash_id). "+
@@ -88,7 +86,6 @@ func (s *Server) registerTools() {
 		),
 	), s.handleGetArticle)
 
-	// semantic_search - Search by text similarity
 	s.mcpServer.AddTool(mcp.NewTool("semantic_search",
 		mcp.WithDescription(
 			"Search for articles semantically similar to the given text. "+
@@ -103,7 +100,6 @@ func (s *Server) registerTools() {
 		),
 	), s.handleSemanticSearch)
 
-	// get_similar_articles - Find similar articles
 	s.mcpServer.AddTool(mcp.NewTool("get_similar_articles",
 		mcp.WithDescription(
 			"Find articles similar to a given article using vector similarity. "+
@@ -117,7 +113,6 @@ func (s *Server) registerTools() {
 		),
 	), s.handleGetSimilarArticles)
 
-	// get_recommendations - Personalized recommendations
 	s.mcpServer.AddTool(mcp.NewTool("get_recommendations",
 		mcp.WithDescription(
 			"Get personalized article recommendations based on your rating history. "+
@@ -127,7 +122,6 @@ func (s *Server) registerTools() {
 		),
 	), s.handleGetRecommendations)
 
-	// rate_article - Set thumbs up/down
 	s.mcpServer.AddTool(mcp.NewTool("rate_article",
 		mcp.WithDescription("Rate an article with thumbs up or thumbs down. This affects your personalized recommendations."),
 		mcp.WithString("article_id",
@@ -140,7 +134,6 @@ func (s *Server) registerTools() {
 		),
 	), s.handleRateArticle)
 
-	// mark_read - Mark as read/unread
 	s.mcpServer.AddTool(mcp.NewTool("mark_read",
 		mcp.WithDescription("Mark an article as read or unread."),
 		mcp.WithString("article_id",
@@ -153,7 +146,6 @@ func (s *Server) registerTools() {
 		),
 	), s.handleMarkRead)
 
-	// list_liked - User's liked articles
 	s.mcpServer.AddTool(mcp.NewTool("list_liked",
 		mcp.WithDescription("List articles you have marked as liked (thumbs up). Requires authentication."),
 		mcp.WithNumber("page",
@@ -164,7 +156,6 @@ func (s *Server) registerTools() {
 		),
 	), s.handleListLiked)
 
-	// list_disliked - User's disliked articles
 	s.mcpServer.AddTool(mcp.NewTool("list_disliked",
 		mcp.WithDescription("List articles you have marked as disliked (thumbs down). Requires authentication."),
 		mcp.WithNumber("page",
@@ -175,7 +166,6 @@ func (s *Server) registerTools() {
 		),
 	), s.handleListDisliked)
 
-	// list_unreviewed - Unreviewed articles
 	s.mcpServer.AddTool(mcp.NewTool("list_unreviewed",
 		mcp.WithDescription("List articles you haven't reviewed yet. Requires authentication."),
 		mcp.WithNumber("page",

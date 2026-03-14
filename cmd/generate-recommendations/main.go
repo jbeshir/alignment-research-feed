@@ -12,11 +12,11 @@ import (
 	"github.com/jbeshir/alignment-research-feed/internal/datasources/mysql"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources/pinecone"
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
-
-	_ "github.com/joho/godotenv/autoload"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	_ = godotenv.Load()
 	ctx := context.Background()
 
 	// Setup logger

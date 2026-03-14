@@ -179,16 +179,16 @@ func (_c *DatasetRepository_CountUserArticleVectorsByType_Call) RunAndReturn(run
 }
 
 // CreateAPIToken provides a mock function for the type DatasetRepository
-func (_mock *DatasetRepository) CreateAPIToken(ctx context.Context, id string, userID string, tokenHash string, tokenPrefix string, name *string, expiresAt *time.Time) error {
-	ret := _mock.Called(ctx, id, userID, tokenHash, tokenPrefix, name, expiresAt)
+func (_mock *DatasetRepository) CreateAPIToken(ctx context.Context, params datasources.CreateAPITokenParams) error {
+	ret := _mock.Called(ctx, params)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreateAPIToken")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, string, *string, *time.Time) error); ok {
-		r0 = returnFunc(ctx, id, userID, tokenHash, tokenPrefix, name, expiresAt)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, datasources.CreateAPITokenParams) error); ok {
+		r0 = returnFunc(ctx, params)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -208,49 +208,13 @@ type DatasetRepository_CreateAPIToken_Call struct {
 //   - tokenPrefix string
 //   - name *string
 //   - expiresAt *time.Time
-func (_e *DatasetRepository_Expecter) CreateAPIToken(ctx interface{}, id interface{}, userID interface{}, tokenHash interface{}, tokenPrefix interface{}, name interface{}, expiresAt interface{}) *DatasetRepository_CreateAPIToken_Call {
-	return &DatasetRepository_CreateAPIToken_Call{Call: _e.mock.On("CreateAPIToken", ctx, id, userID, tokenHash, tokenPrefix, name, expiresAt)}
+func (_e *DatasetRepository_Expecter) CreateAPIToken(ctx interface{}, params interface{}) *DatasetRepository_CreateAPIToken_Call {
+	return &DatasetRepository_CreateAPIToken_Call{Call: _e.mock.On("CreateAPIToken", ctx, params)}
 }
 
-func (_c *DatasetRepository_CreateAPIToken_Call) Run(run func(ctx context.Context, id string, userID string, tokenHash string, tokenPrefix string, name *string, expiresAt *time.Time)) *DatasetRepository_CreateAPIToken_Call {
+func (_c *DatasetRepository_CreateAPIToken_Call) Run(run func(ctx context.Context, params datasources.CreateAPITokenParams)) *DatasetRepository_CreateAPIToken_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		var arg2 string
-		if args[2] != nil {
-			arg2 = args[2].(string)
-		}
-		var arg3 string
-		if args[3] != nil {
-			arg3 = args[3].(string)
-		}
-		var arg4 string
-		if args[4] != nil {
-			arg4 = args[4].(string)
-		}
-		var arg5 *string
-		if args[5] != nil {
-			arg5 = args[5].(*string)
-		}
-		var arg6 *time.Time
-		if args[6] != nil {
-			arg6 = args[6].(*time.Time)
-		}
-		run(
-			arg0,
-			arg1,
-			arg2,
-			arg3,
-			arg4,
-			arg5,
-			arg6,
-		)
+		run(args[0].(context.Context), args[1].(datasources.CreateAPITokenParams))
 	})
 	return _c
 }
@@ -260,7 +224,7 @@ func (_c *DatasetRepository_CreateAPIToken_Call) Return(err error) *DatasetRepos
 	return _c
 }
 
-func (_c *DatasetRepository_CreateAPIToken_Call) RunAndReturn(run func(ctx context.Context, id string, userID string, tokenHash string, tokenPrefix string, name *string, expiresAt *time.Time) error) *DatasetRepository_CreateAPIToken_Call {
+func (_c *DatasetRepository_CreateAPIToken_Call) RunAndReturn(run func(ctx context.Context, params datasources.CreateAPITokenParams) error) *DatasetRepository_CreateAPIToken_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1619,7 +1583,7 @@ func (_c *DatasetRepository_RevokeAPIToken_Call) RunAndReturn(run func(ctx conte
 }
 
 // SetArticleRating provides a mock function for the type DatasetRepository
-func (_mock *DatasetRepository) SetArticleRating(ctx context.Context, userID string, articleHashID string, thumbsUp bool, thumbsDown bool, vector []float32) error {
+func (_mock *DatasetRepository) SetArticleRating(ctx context.Context, userID string, articleHashID string, thumbsUp *bool, thumbsDown *bool, vector []float32) error {
 	ret := _mock.Called(ctx, userID, articleHashID, thumbsUp, thumbsDown, vector)
 
 	if len(ret) == 0 {
@@ -1627,7 +1591,7 @@ func (_mock *DatasetRepository) SetArticleRating(ctx context.Context, userID str
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, bool, bool, []float32) error); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, *bool, *bool, []float32) error); ok {
 		r0 = returnFunc(ctx, userID, articleHashID, thumbsUp, thumbsDown, vector)
 	} else {
 		r0 = ret.Error(0)
@@ -1644,14 +1608,14 @@ type DatasetRepository_SetArticleRating_Call struct {
 //   - ctx context.Context
 //   - userID string
 //   - articleHashID string
-//   - thumbsUp bool
-//   - thumbsDown bool
+//   - thumbsUp *bool
+//   - thumbsDown *bool
 //   - vector []float32
 func (_e *DatasetRepository_Expecter) SetArticleRating(ctx interface{}, userID interface{}, articleHashID interface{}, thumbsUp interface{}, thumbsDown interface{}, vector interface{}) *DatasetRepository_SetArticleRating_Call {
 	return &DatasetRepository_SetArticleRating_Call{Call: _e.mock.On("SetArticleRating", ctx, userID, articleHashID, thumbsUp, thumbsDown, vector)}
 }
 
-func (_c *DatasetRepository_SetArticleRating_Call) Run(run func(ctx context.Context, userID string, articleHashID string, thumbsUp bool, thumbsDown bool, vector []float32)) *DatasetRepository_SetArticleRating_Call {
+func (_c *DatasetRepository_SetArticleRating_Call) Run(run func(ctx context.Context, userID string, articleHashID string, thumbsUp *bool, thumbsDown *bool, vector []float32)) *DatasetRepository_SetArticleRating_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -1665,13 +1629,13 @@ func (_c *DatasetRepository_SetArticleRating_Call) Run(run func(ctx context.Cont
 		if args[2] != nil {
 			arg2 = args[2].(string)
 		}
-		var arg3 bool
+		var arg3 *bool
 		if args[3] != nil {
-			arg3 = args[3].(bool)
+			arg3 = args[3].(*bool)
 		}
-		var arg4 bool
+		var arg4 *bool
 		if args[4] != nil {
-			arg4 = args[4].(bool)
+			arg4 = args[4].(*bool)
 		}
 		var arg5 []float32
 		if args[5] != nil {
@@ -1694,7 +1658,7 @@ func (_c *DatasetRepository_SetArticleRating_Call) Return(err error) *DatasetRep
 	return _c
 }
 
-func (_c *DatasetRepository_SetArticleRating_Call) RunAndReturn(run func(ctx context.Context, userID string, articleHashID string, thumbsUp bool, thumbsDown bool, vector []float32) error) *DatasetRepository_SetArticleRating_Call {
+func (_c *DatasetRepository_SetArticleRating_Call) RunAndReturn(run func(ctx context.Context, userID string, articleHashID string, thumbsUp *bool, thumbsDown *bool, vector []float32) error) *DatasetRepository_SetArticleRating_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1826,16 +1790,16 @@ func (_c *DatasetRepository_UpdateAPITokenLastUsed_Call) RunAndReturn(run func(c
 }
 
 // UpsertPrecomputedRecommendation provides a mock function for the type DatasetRepository
-func (_mock *DatasetRepository) UpsertPrecomputedRecommendation(ctx context.Context, userID string, articleHashID string, score float64, source string, position int, generatedAt time.Time) error {
-	ret := _mock.Called(ctx, userID, articleHashID, score, source, position, generatedAt)
+func (_mock *DatasetRepository) UpsertPrecomputedRecommendation(ctx context.Context, params datasources.UpsertPrecomputedRecommendationParams) error {
+	ret := _mock.Called(ctx, params)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UpsertPrecomputedRecommendation")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, float64, string, int, time.Time) error); ok {
-		r0 = returnFunc(ctx, userID, articleHashID, score, source, position, generatedAt)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, datasources.UpsertPrecomputedRecommendationParams) error); ok {
+		r0 = returnFunc(ctx, params)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -1855,49 +1819,13 @@ type DatasetRepository_UpsertPrecomputedRecommendation_Call struct {
 //   - source string
 //   - position int
 //   - generatedAt time.Time
-func (_e *DatasetRepository_Expecter) UpsertPrecomputedRecommendation(ctx interface{}, userID interface{}, articleHashID interface{}, score interface{}, source interface{}, position interface{}, generatedAt interface{}) *DatasetRepository_UpsertPrecomputedRecommendation_Call {
-	return &DatasetRepository_UpsertPrecomputedRecommendation_Call{Call: _e.mock.On("UpsertPrecomputedRecommendation", ctx, userID, articleHashID, score, source, position, generatedAt)}
+func (_e *DatasetRepository_Expecter) UpsertPrecomputedRecommendation(ctx interface{}, params interface{}) *DatasetRepository_UpsertPrecomputedRecommendation_Call {
+	return &DatasetRepository_UpsertPrecomputedRecommendation_Call{Call: _e.mock.On("UpsertPrecomputedRecommendation", ctx, params)}
 }
 
-func (_c *DatasetRepository_UpsertPrecomputedRecommendation_Call) Run(run func(ctx context.Context, userID string, articleHashID string, score float64, source string, position int, generatedAt time.Time)) *DatasetRepository_UpsertPrecomputedRecommendation_Call {
+func (_c *DatasetRepository_UpsertPrecomputedRecommendation_Call) Run(run func(ctx context.Context, params datasources.UpsertPrecomputedRecommendationParams)) *DatasetRepository_UpsertPrecomputedRecommendation_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		var arg2 string
-		if args[2] != nil {
-			arg2 = args[2].(string)
-		}
-		var arg3 float64
-		if args[3] != nil {
-			arg3 = args[3].(float64)
-		}
-		var arg4 string
-		if args[4] != nil {
-			arg4 = args[4].(string)
-		}
-		var arg5 int
-		if args[5] != nil {
-			arg5 = args[5].(int)
-		}
-		var arg6 time.Time
-		if args[6] != nil {
-			arg6 = args[6].(time.Time)
-		}
-		run(
-			arg0,
-			arg1,
-			arg2,
-			arg3,
-			arg4,
-			arg5,
-			arg6,
-		)
+		run(args[0].(context.Context), args[1].(datasources.UpsertPrecomputedRecommendationParams))
 	})
 	return _c
 }
@@ -1907,7 +1835,7 @@ func (_c *DatasetRepository_UpsertPrecomputedRecommendation_Call) Return(err err
 	return _c
 }
 
-func (_c *DatasetRepository_UpsertPrecomputedRecommendation_Call) RunAndReturn(run func(ctx context.Context, userID string, articleHashID string, score float64, source string, position int, generatedAt time.Time) error) *DatasetRepository_UpsertPrecomputedRecommendation_Call {
+func (_c *DatasetRepository_UpsertPrecomputedRecommendation_Call) RunAndReturn(run func(ctx context.Context, params datasources.UpsertPrecomputedRecommendationParams) error) *DatasetRepository_UpsertPrecomputedRecommendation_Call {
 	_c.Call.Return(run)
 	return _c
 }

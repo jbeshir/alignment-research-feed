@@ -72,10 +72,8 @@ type ScoredArticle struct {
 func (c *GenerateRecommendations) Execute(
 	ctx context.Context, req GenerateRecommendationsRequest,
 ) ([]ScoredArticle, error) {
-	// Get read article IDs to exclude from recommendations
-	readArticleIDs := c.getReadArticleIDs(ctx, req.UserID)
+	readArticleIDs := readArticleIDSet(ctx, c.ReadArticlesLister, req.UserID)
 
-	// Get user's article vectors for temporal weighting
 	thumbsUpVectors, err := c.VectorsGetter.GetUserArticleVectorsByType(
 		ctx, req.UserID, domain.RatingTypeThumbsUp,
 	)
@@ -87,10 +85,8 @@ func (c *GenerateRecommendations) Execute(
 		return nil, nil
 	}
 
-	// Compute negative signal vector once (average of thumbs down)
 	negativeVector := c.getNegativeVector(ctx, req.UserID)
 
-	// Collect candidates from multiple strategies
 	var candidates []ScoredArticle
 	candidates = append(candidates, c.getCandidatesUsingClusters(ctx, req.UserID, negativeVector)...)
 	candidates = append(candidates, c.getCandidatesUsingTemporalVector(ctx, thumbsUpVectors, negativeVector)...)
@@ -99,7 +95,6 @@ func (c *GenerateRecommendations) Execute(
 		return nil, nil
 	}
 
-	// Deduplicate, filter read articles, and rank candidates
 	return c.rankAndDeduplicate(candidates, req.Limit, readArticleIDs), nil
 }
 
@@ -169,7 +164,7 @@ func (c *GenerateRecommendations) getCandidatesUsingTemporalVector(
 	}
 
 	candidateLimit := c.Config.CandidatesPerCluster * 2
-	candidates, err := c.getCandidatesFromVector(ctx, temporalVector, negativeVector, "temporal", candidateLimit)
+	candidates, err := c.getCandidatesFromVector(ctx, temporalVector, negativeVector != nil, "temporal", candidateLimit)
 	if err != nil {
 		logger.WarnContext(ctx, "failed to get temporal candidates", "error", err)
 		return nil
@@ -209,7 +204,7 @@ func (c *GenerateRecommendations) getCandidatesFromClusters(
 	for _, cluster := range clusters {
 		source := fmt.Sprintf("cluster_%d", cluster.ClusterID)
 		candidates, err := c.getCandidatesFromVector(
-			ctx, cluster.CentroidVector, negativeVector, source, c.Config.CandidatesPerCluster,
+			ctx, cluster.CentroidVector, negativeVector != nil, source, c.Config.CandidatesPerCluster,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("getting candidates from cluster %d: %w", cluster.ClusterID, err)
@@ -224,7 +219,7 @@ func (c *GenerateRecommendations) getCandidatesFromClusters(
 func (c *GenerateRecommendations) getCandidatesFromVector(
 	ctx context.Context,
 	queryVector []float32,
-	negativeVector []float32,
+	hasNegativeSignal bool,
 	source string,
 	limit int,
 ) ([]ScoredArticle, error) {
@@ -237,10 +232,8 @@ func (c *GenerateRecommendations) getCandidatesFromVector(
 	for _, s := range similar {
 		score := s.Score
 
-		// Apply negative signal penalty
-		if negativeVector != nil {
-			// For efficiency, we approximate using the query similarity as a proxy.
-			// A more accurate approach would fetch each article's vector.
+		if hasNegativeSignal {
+			// Approximate negative penalty using query similarity as proxy
 			negativePenalty := c.Config.NegativeSignalWeight * score * 0.5
 			score -= negativePenalty
 		}
@@ -313,20 +306,4 @@ func (c *GenerateRecommendations) rankAndDeduplicate(
 	}
 
 	return unique
-}
-
-// getReadArticleIDs fetches the set of article IDs the user has already read.
-func (c *GenerateRecommendations) getReadArticleIDs(ctx context.Context, userID string) map[string]struct{} {
-	logger := domain.LoggerFromContext(ctx)
-	readIDs, err := c.ReadArticlesLister.ListReadArticleIDs(ctx, userID)
-	if err != nil {
-		logger.WarnContext(ctx, "failed to get read article IDs", "error", err)
-		return make(map[string]struct{})
-	}
-
-	result := make(map[string]struct{}, len(readIDs))
-	for _, id := range readIDs {
-		result[id] = struct{}{}
-	}
-	return result
 }

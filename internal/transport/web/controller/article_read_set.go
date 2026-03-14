@@ -12,5 +12,5 @@ type ArticleReadSet struct {
 }
 
 func (c ArticleReadSet) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	handleFeedback(w, r, c.Fetcher, c.ReadSetter.SetArticleRead, "read")
+	setArticleBoolFromRequest(w, r, c.Fetcher, c.ReadSetter.SetArticleRead, "read")
 }

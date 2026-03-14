@@ -10,6 +10,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jbeshir/alignment-research-feed/internal/datasources"
+	"github.com/jbeshir/alignment-research-feed/internal/domain"
 )
 
 // MaxAPITokensPerUser is the maximum number of active tokens a user can have.
@@ -17,9 +18,6 @@ const MaxAPITokensPerUser = 10
 
 // ErrTokenLimitExceeded is returned when a user has reached the maximum number of active tokens.
 var ErrTokenLimitExceeded = errors.New("user has reached maximum number of active tokens")
-
-// APITokenPrefix is the prefix for API tokens in the Authorization header.
-const APITokenPrefix = "user_api|"
 
 // CreateAPITokenRequest is the request for the CreateAPIToken command.
 type CreateAPITokenRequest struct {
@@ -70,7 +68,7 @@ func (c *CreateAPIToken) Execute(ctx context.Context, req CreateAPITokenRequest)
 	}
 
 	tokenHex := hex.EncodeToString(tokenBytes)
-	fullToken := APITokenPrefix + tokenHex
+	fullToken := domain.APITokenPrefix + tokenHex
 
 	// Compute SHA256 hash
 	hash := sha256.Sum256([]byte(fullToken))
@@ -83,7 +81,13 @@ func (c *CreateAPIToken) Execute(ctx context.Context, req CreateAPITokenRequest)
 	tokenID := uuid.New().String()
 
 	// Store in database
-	if err := c.TokenCreator.CreateAPIToken(ctx, tokenID, req.UserID, tokenHash, tokenPrefix, req.Name, nil); err != nil {
+	if err := c.TokenCreator.CreateAPIToken(ctx, datasources.CreateAPITokenParams{
+		ID:          tokenID,
+		UserID:      req.UserID,
+		TokenHash:   tokenHash,
+		TokenPrefix: tokenPrefix,
+		Name:        req.Name,
+	}); err != nil {
 		return CreateAPITokenResponse{}, fmt.Errorf("creating token: %w", err)
 	}
 

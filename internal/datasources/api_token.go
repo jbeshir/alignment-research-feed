@@ -7,14 +7,19 @@ import (
 	"github.com/jbeshir/alignment-research-feed/internal/domain"
 )
 
+// CreateAPITokenParams holds the parameters for creating an API token.
+type CreateAPITokenParams struct {
+	ID          string
+	UserID      string
+	TokenHash   string
+	TokenPrefix string
+	Name        *string
+	ExpiresAt   *time.Time
+}
+
 // APITokenCreator creates a new API token.
 type APITokenCreator interface {
-	CreateAPIToken(
-		ctx context.Context,
-		id, userID, tokenHash, tokenPrefix string,
-		name *string,
-		expiresAt *time.Time,
-	) error
+	CreateAPIToken(ctx context.Context, params CreateAPITokenParams) error
 }
 
 // APITokenByHashGetter retrieves an API token by its hash.

@@ -185,7 +185,7 @@ func (_c *UserArticleInteractionStore_GetUserArticleVectorsByType_Call) RunAndRe
 }
 
 // SetArticleRating provides a mock function for the type UserArticleInteractionStore
-func (_mock *UserArticleInteractionStore) SetArticleRating(ctx context.Context, userID string, articleHashID string, thumbsUp bool, thumbsDown bool, vector []float32) error {
+func (_mock *UserArticleInteractionStore) SetArticleRating(ctx context.Context, userID string, articleHashID string, thumbsUp *bool, thumbsDown *bool, vector []float32) error {
 	ret := _mock.Called(ctx, userID, articleHashID, thumbsUp, thumbsDown, vector)
 
 	if len(ret) == 0 {
@@ -193,7 +193,7 @@ func (_mock *UserArticleInteractionStore) SetArticleRating(ctx context.Context, 
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, bool, bool, []float32) error); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, *bool, *bool, []float32) error); ok {
 		r0 = returnFunc(ctx, userID, articleHashID, thumbsUp, thumbsDown, vector)
 	} else {
 		r0 = ret.Error(0)
@@ -210,14 +210,14 @@ type UserArticleInteractionStore_SetArticleRating_Call struct {
 //   - ctx context.Context
 //   - userID string
 //   - articleHashID string
-//   - thumbsUp bool
-//   - thumbsDown bool
+//   - thumbsUp *bool
+//   - thumbsDown *bool
 //   - vector []float32
 func (_e *UserArticleInteractionStore_Expecter) SetArticleRating(ctx interface{}, userID interface{}, articleHashID interface{}, thumbsUp interface{}, thumbsDown interface{}, vector interface{}) *UserArticleInteractionStore_SetArticleRating_Call {
 	return &UserArticleInteractionStore_SetArticleRating_Call{Call: _e.mock.On("SetArticleRating", ctx, userID, articleHashID, thumbsUp, thumbsDown, vector)}
 }
 
-func (_c *UserArticleInteractionStore_SetArticleRating_Call) Run(run func(ctx context.Context, userID string, articleHashID string, thumbsUp bool, thumbsDown bool, vector []float32)) *UserArticleInteractionStore_SetArticleRating_Call {
+func (_c *UserArticleInteractionStore_SetArticleRating_Call) Run(run func(ctx context.Context, userID string, articleHashID string, thumbsUp *bool, thumbsDown *bool, vector []float32)) *UserArticleInteractionStore_SetArticleRating_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -231,13 +231,13 @@ func (_c *UserArticleInteractionStore_SetArticleRating_Call) Run(run func(ctx co
 		if args[2] != nil {
 			arg2 = args[2].(string)
 		}
-		var arg3 bool
+		var arg3 *bool
 		if args[3] != nil {
-			arg3 = args[3].(bool)
+			arg3 = args[3].(*bool)
 		}
-		var arg4 bool
+		var arg4 *bool
 		if args[4] != nil {
-			arg4 = args[4].(bool)
+			arg4 = args[4].(*bool)
 		}
 		var arg5 []float32
 		if args[5] != nil {
@@ -260,7 +260,7 @@ func (_c *UserArticleInteractionStore_SetArticleRating_Call) Return(err error) *
 	return _c
 }
 
-func (_c *UserArticleInteractionStore_SetArticleRating_Call) RunAndReturn(run func(ctx context.Context, userID string, articleHashID string, thumbsUp bool, thumbsDown bool, vector []float32) error) *UserArticleInteractionStore_SetArticleRating_Call {
+func (_c *UserArticleInteractionStore_SetArticleRating_Call) RunAndReturn(run func(ctx context.Context, userID string, articleHashID string, thumbsUp *bool, thumbsDown *bool, vector []float32) error) *UserArticleInteractionStore_SetArticleRating_Call {
 	_c.Call.Return(run)
 	return _c
 }

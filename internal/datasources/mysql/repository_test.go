@@ -17,6 +17,8 @@ const (
 	testArticleHash2 = "59c45352ef0608a50c51afe9afbc23c3"
 )
 
+func boolPtr(b bool) *bool { return &b }
+
 func setupTestDB(t *testing.T) *sql.DB {
 	if testing.Short() {
 		t.Skip("skipping MySQL integration tests in short mode")
@@ -377,7 +379,7 @@ func TestRepository_SetArticleRating(t *testing.T) {
 
 	// Test SetArticleRating with thumbs up
 	testVector := []float32{0.1, 0.2, 0.3}
-	err = sut.SetArticleRating(ctx, userID, articleID, true, false, testVector)
+	err = sut.SetArticleRating(ctx, userID, articleID, boolPtr(true), boolPtr(false), testVector)
 	require.NoError(t, err)
 
 	articles, err = sut.FetchArticlesByID(userCtx, []string{articleID})
@@ -386,7 +388,7 @@ func TestRepository_SetArticleRating(t *testing.T) {
 	assert.True(t, *articles[0].ThumbsUp)
 
 	// Test SetArticleRating with thumbs down
-	err = sut.SetArticleRating(ctx, userID, articleID, false, true, testVector)
+	err = sut.SetArticleRating(ctx, userID, articleID, boolPtr(false), boolPtr(true), testVector)
 	require.NoError(t, err)
 
 	articles, err = sut.FetchArticlesByID(userCtx, []string{articleID})
@@ -397,7 +399,7 @@ func TestRepository_SetArticleRating(t *testing.T) {
 	assert.False(t, *articles[0].ThumbsUp)
 
 	// Test clearing rating
-	err = sut.SetArticleRating(ctx, userID, articleID, false, false, testVector)
+	err = sut.SetArticleRating(ctx, userID, articleID, boolPtr(false), boolPtr(false), testVector)
 	require.NoError(t, err)
 
 	articles, err = sut.FetchArticlesByID(userCtx, []string{articleID})
@@ -422,7 +424,7 @@ func TestRepository_ListThumbsUpArticleIDs(t *testing.T) {
 	assert.Empty(t, ids)
 
 	// Add thumbs up to one article
-	err = sut.SetArticleRating(ctx, userID, testArticleHash1, true, false, nil)
+	err = sut.SetArticleRating(ctx, userID, testArticleHash1, boolPtr(true), boolPtr(false), nil)
 	require.NoError(t, err)
 
 	ids, err = sut.ListThumbsUpArticleIDs(ctx, userID)
@@ -430,7 +432,7 @@ func TestRepository_ListThumbsUpArticleIDs(t *testing.T) {
 	assert.Equal(t, []string{testArticleHash1}, ids)
 
 	// Add thumbs up to another article
-	err = sut.SetArticleRating(ctx, userID, testArticleHash2, true, false, nil)
+	err = sut.SetArticleRating(ctx, userID, testArticleHash2, boolPtr(true), boolPtr(false), nil)
 	require.NoError(t, err)
 
 	ids, err = sut.ListThumbsUpArticleIDs(ctx, userID)
@@ -438,7 +440,7 @@ func TestRepository_ListThumbsUpArticleIDs(t *testing.T) {
 	assert.Len(t, ids, 2)
 
 	// Remove thumbs up
-	err = sut.SetArticleRating(ctx, userID, testArticleHash1, false, false, nil)
+	err = sut.SetArticleRating(ctx, userID, testArticleHash1, boolPtr(false), boolPtr(false), nil)
 	require.NoError(t, err)
 
 	ids, err = sut.ListThumbsUpArticleIDs(ctx, userID)
@@ -460,14 +462,14 @@ func TestRepository_SetArticleRatingMultipleArticles(t *testing.T) {
 	vector1 := []float32{1.0, 2.0, 3.0}
 	vector2 := []float32{0.5, 1.0, 1.5}
 
-	err := sut.SetArticleRating(ctx, userID, articleID1, true, false, vector1)
+	err := sut.SetArticleRating(ctx, userID, articleID1, boolPtr(true), boolPtr(false), vector1)
 	require.NoError(t, err)
 
-	err = sut.SetArticleRating(ctx, userID, articleID2, true, false, vector2)
+	err = sut.SetArticleRating(ctx, userID, articleID2, boolPtr(true), boolPtr(false), vector2)
 	require.NoError(t, err)
 
 	// Change one to thumbs down
-	err = sut.SetArticleRating(ctx, userID, articleID1, false, true, vector1)
+	err = sut.SetArticleRating(ctx, userID, articleID1, boolPtr(false), boolPtr(true), vector1)
 	require.NoError(t, err)
 
 	// Verify ratings are correct
