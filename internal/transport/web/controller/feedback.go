@@ -48,7 +48,12 @@ func handleFeedback(
 		return
 	}
 
-	err = setter(ctx, id, domain.UserIDFromContext(r.Context()), value)
+	userID := domain.UserIDFromContext(r.Context())
+	if userID == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	err = setter(ctx, id, userID, value)
 	if err != nil {
 		logger.ErrorContext(ctx, "unable to set feedback", "error", err)
 

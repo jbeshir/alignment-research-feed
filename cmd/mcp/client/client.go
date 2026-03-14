@@ -309,8 +309,8 @@ func (c *Client) MarkRead(ctx context.Context, articleID string, read bool) erro
 	return c.handleResponse(resp, nil)
 }
 
-// ListLiked retrieves articles the user has liked (thumbs up).
-func (c *Client) ListLiked(ctx context.Context, page, pageSize int) ([]Article, error) {
+// listArticlesByPath retrieves a paginated list of articles from the given path.
+func (c *Client) listArticlesByPath(ctx context.Context, path string, page, pageSize int) ([]Article, error) {
 	params := url.Values{}
 	if page > 0 {
 		params.Set("page", strconv.Itoa(page))
@@ -319,7 +319,6 @@ func (c *Client) ListLiked(ctx context.Context, page, pageSize int) ([]Article, 
 		params.Set("page_size", strconv.Itoa(pageSize))
 	}
 
-	path := "/v1/articles/liked"
 	if len(params) > 0 {
 		path += "?" + params.Encode()
 	}
@@ -336,62 +335,19 @@ func (c *Client) ListLiked(ctx context.Context, page, pageSize int) ([]Article, 
 	}
 
 	return result.Data, nil
+}
+
+// ListLiked retrieves articles the user has liked (thumbs up).
+func (c *Client) ListLiked(ctx context.Context, page, pageSize int) ([]Article, error) {
+	return c.listArticlesByPath(ctx, "/v1/articles/liked", page, pageSize)
 }
 
 // ListDisliked retrieves articles the user has disliked (thumbs down).
 func (c *Client) ListDisliked(ctx context.Context, page, pageSize int) ([]Article, error) {
-	params := url.Values{}
-	if page > 0 {
-		params.Set("page", strconv.Itoa(page))
-	}
-	if pageSize > 0 {
-		params.Set("page_size", strconv.Itoa(pageSize))
-	}
-
-	path := "/v1/articles/disliked"
-	if len(params) > 0 {
-		path += "?" + params.Encode()
-	}
-
-	resp, err := c.doRequest(ctx, http.MethodGet, path)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	var result ArticlesResponse
-	if err := c.handleResponse(resp, &result); err != nil {
-		return nil, err
-	}
-
-	return result.Data, nil
+	return c.listArticlesByPath(ctx, "/v1/articles/disliked", page, pageSize)
 }
 
 // ListUnreviewed retrieves articles the user hasn't reviewed yet.
 func (c *Client) ListUnreviewed(ctx context.Context, page, pageSize int) ([]Article, error) {
-	params := url.Values{}
-	if page > 0 {
-		params.Set("page", strconv.Itoa(page))
-	}
-	if pageSize > 0 {
-		params.Set("page_size", strconv.Itoa(pageSize))
-	}
-
-	path := "/v1/articles/unreviewed"
-	if len(params) > 0 {
-		path += "?" + params.Encode()
-	}
-
-	resp, err := c.doRequest(ctx, http.MethodGet, path)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	var result ArticlesResponse
-	if err := c.handleResponse(resp, &result); err != nil {
-		return nil, err
-	}
-
-	return result.Data, nil
+	return c.listArticlesByPath(ctx, "/v1/articles/unreviewed", page, pageSize)
 }

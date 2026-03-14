@@ -26,48 +26,39 @@ type ArticlesListResponse struct {
 type ArticlesListMetadata struct{}
 
 func (c ArticlesList) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	logger := domain.LoggerFromContext(ctx)
+
 	filters, err := articleFiltersFromQuery(r.URL.Query())
 	if err != nil {
-		ctx := r.Context()
-		logger := domain.LoggerFromContext(ctx)
 		logger.ErrorContext(ctx, "unable to parse article filters in query string", "error", err)
-
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	options, err := listOptionsFromQuery(r.URL.Query())
 	if err != nil {
-		ctx := r.Context()
-		logger := domain.LoggerFromContext(ctx)
 		logger.ErrorContext(ctx, "unable to parse article list options in query string", "error", err)
-
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
-	articleIDs, err := c.Lister.ListLatestArticleIDs(r.Context(), filters, options)
+	articleIDs, err := c.Lister.ListLatestArticleIDs(ctx, filters, options)
 	if err != nil {
-		ctx := r.Context()
-		logger := domain.LoggerFromContext(ctx)
 		logger.ErrorContext(ctx, "unable to fetch article IDs", "error", err)
-
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	articles, err := c.Lister.FetchArticlesByID(r.Context(), articleIDs)
+	articles, err := c.Lister.FetchArticlesByID(ctx, articleIDs)
 	if err != nil {
-		ctx := r.Context()
-		logger := domain.LoggerFromContext(ctx)
 		logger.ErrorContext(ctx, "unable to fetch article metadata", "error", err)
-
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	if domain.UserIDFromContext(r.Context()) == "" {
+	if domain.UserIDFromContext(ctx) == "" {
 		w.Header().Set("Cache-Control", fmt.Sprintf("max-age=%d", int(c.CacheMaxAge.Seconds())))
 	}
 
@@ -75,8 +66,6 @@ func (c ArticlesList) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Data:     articles,
 		Metadata: ArticlesListMetadata{},
 	}); err != nil {
-		ctx := r.Context()
-		logger := domain.LoggerFromContext(ctx)
 		logger.ErrorContext(ctx, "unable to write articles to response", "error", err)
 	}
 }

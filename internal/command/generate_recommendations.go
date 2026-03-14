@@ -72,10 +72,8 @@ type ScoredArticle struct {
 func (c *GenerateRecommendations) Execute(
 	ctx context.Context, req GenerateRecommendationsRequest,
 ) ([]ScoredArticle, error) {
-	// Get read article IDs to exclude from recommendations
-	readArticleIDs := c.getReadArticleIDs(ctx, req.UserID)
+	readArticleIDs := readArticleIDSet(ctx, c.ReadArticlesLister, req.UserID)
 
-	// Get user's article vectors for temporal weighting
 	thumbsUpVectors, err := c.VectorsGetter.GetUserArticleVectorsByType(
 		ctx, req.UserID, domain.RatingTypeThumbsUp,
 	)
@@ -87,10 +85,8 @@ func (c *GenerateRecommendations) Execute(
 		return nil, nil
 	}
 
-	// Compute negative signal vector once (average of thumbs down)
 	negativeVector := c.getNegativeVector(ctx, req.UserID)
 
-	// Collect candidates from multiple strategies
 	var candidates []ScoredArticle
 	candidates = append(candidates, c.getCandidatesUsingClusters(ctx, req.UserID, negativeVector)...)
 	candidates = append(candidates, c.getCandidatesUsingTemporalVector(ctx, thumbsUpVectors, negativeVector)...)
@@ -99,7 +95,6 @@ func (c *GenerateRecommendations) Execute(
 		return nil, nil
 	}
 
-	// Deduplicate, filter read articles, and rank candidates
 	return c.rankAndDeduplicate(candidates, req.Limit, readArticleIDs), nil
 }
 
@@ -315,18 +310,3 @@ func (c *GenerateRecommendations) rankAndDeduplicate(
 	return unique
 }
 
-// getReadArticleIDs fetches the set of article IDs the user has already read.
-func (c *GenerateRecommendations) getReadArticleIDs(ctx context.Context, userID string) map[string]struct{} {
-	logger := domain.LoggerFromContext(ctx)
-	readIDs, err := c.ReadArticlesLister.ListReadArticleIDs(ctx, userID)
-	if err != nil {
-		logger.WarnContext(ctx, "failed to get read article IDs", "error", err)
-		return make(map[string]struct{})
-	}
-
-	result := make(map[string]struct{}, len(readIDs))
-	for _, id := range readIDs {
-		result[id] = struct{}{}
-	}
-	return result
-}

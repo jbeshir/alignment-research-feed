@@ -68,21 +68,18 @@ func NewRecommendArticles(
 func (c *RecommendArticles) Execute(ctx context.Context, req RecommendArticlesRequest) ([]domain.Article, error) {
 	logger := domain.LoggerFromContext(ctx)
 
-	// Try precomputed recommendations first
 	scored, err := c.getPrecomputedRecommendations(ctx, req.UserID, req.Limit)
 	if err != nil {
 		logger.WarnContext(ctx, "failed to get precomputed recommendations, falling back to on-demand",
 			"error", err)
 	}
 
-	// Fall back to on-demand generation if precomputed is empty
 	if len(scored) == 0 {
 		scored, err = c.GenerateCommand.Execute(ctx, GenerateRecommendationsRequest(req))
 		if err != nil {
 			return nil, err
 		}
 
-		// Store generated recommendations for next request
 		if len(scored) > 0 {
 			c.storeGeneratedRecommendations(ctx, req.UserID, scored)
 		}
@@ -112,7 +109,6 @@ func (c *RecommendArticles) getPrecomputedRecommendations(
 ) ([]ScoredArticle, error) {
 	logger := domain.LoggerFromContext(ctx)
 
-	// Check if precomputed recommendations exist and are fresh
 	generatedAt, err := c.PrecomputedReader.GetPrecomputedRecommendationAge(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -128,7 +124,6 @@ func (c *RecommendArticles) getPrecomputedRecommendations(
 		return nil, nil
 	}
 
-	// Fetch precomputed recommendations
 	precomputed, err := c.PrecomputedReader.GetPrecomputedRecommendations(ctx, userID, c.Config.PrecomputedFetchLimit)
 	if err != nil {
 		return nil, err
@@ -138,10 +133,8 @@ func (c *RecommendArticles) getPrecomputedRecommendations(
 		return nil, nil
 	}
 
-	// Get read article IDs to filter
-	readIDs := c.getReadArticleIDs(ctx, userID)
+	readIDs := readArticleIDSet(ctx, c.ReadArticlesLister, userID)
 
-	// Filter out read articles and convert to ScoredArticle (maintaining order by position)
 	result := make([]ScoredArticle, 0, limit)
 	for _, rec := range precomputed {
 		if _, isRead := readIDs[rec.ArticleHashID]; isRead {
@@ -160,10 +153,11 @@ func (c *RecommendArticles) getPrecomputedRecommendations(
 	return result, nil
 }
 
-// getReadArticleIDs fetches the set of article IDs the user has already read.
-func (c *RecommendArticles) getReadArticleIDs(ctx context.Context, userID string) map[string]struct{} {
+// readArticleIDSet fetches the set of article IDs the user has already read.
+// Returns an empty map on error (best-effort).
+func readArticleIDSet(ctx context.Context, lister datasources.ReadArticleIDsLister, userID string) map[string]struct{} {
 	logger := domain.LoggerFromContext(ctx)
-	readIDs, err := c.ReadArticlesLister.ListReadArticleIDs(ctx, userID)
+	readIDs, err := lister.ListReadArticleIDs(ctx, userID)
 	if err != nil {
 		logger.WarnContext(ctx, "failed to get read article IDs", "error", err)
 		return make(map[string]struct{})
@@ -176,25 +170,37 @@ func (c *RecommendArticles) getReadArticleIDs(ctx context.Context, userID string
 	return result
 }
 
-// storeGeneratedRecommendations stores on-demand generated recommendations
-// so they're available from the precomputed store on subsequent requests.
+// storeGeneratedRecommendations stores on-demand generated recommendations.
 // Errors are logged but not returned since this is best-effort caching.
 func (c *RecommendArticles) storeGeneratedRecommendations(
 	ctx context.Context, userID string, scored []ScoredArticle,
 ) {
 	logger := domain.LoggerFromContext(ctx)
-
-	// Delete existing precomputed recommendations for this user
-	if err := c.PrecomputedWriter.DeleteUserPrecomputedRecommendations(ctx, userID); err != nil {
-		logger.WarnContext(ctx, "failed to delete existing precomputed recommendations",
+	if err := storePrecomputedRecommendations(ctx, c.PrecomputedWriter, c.RegenerationStatus, userID, scored); err != nil {
+		logger.WarnContext(ctx, "failed to store on-demand recommendations",
 			"user_id", userID, "error", err)
 		return
 	}
+	logger.DebugContext(ctx, "stored on-demand recommendations",
+		"user_id", userID, "count", len(scored))
+}
 
-	// Store the new recommendations
+// storePrecomputedRecommendations replaces a user's precomputed recommendations
+// and marks the user as regenerated.
+func storePrecomputedRecommendations(
+	ctx context.Context,
+	writer datasources.PrecomputedRecommendationWriter,
+	marker datasources.UserRegeneratedMarker,
+	userID string,
+	scored []ScoredArticle,
+) error {
+	if err := writer.DeleteUserPrecomputedRecommendations(ctx, userID); err != nil {
+		return fmt.Errorf("deleting existing recommendations: %w", err)
+	}
+
 	generatedAt := time.Now()
 	for position, article := range scored {
-		if err := c.PrecomputedWriter.UpsertPrecomputedRecommendation(
+		if err := writer.UpsertPrecomputedRecommendation(
 			ctx,
 			userID,
 			article.HashID,
@@ -203,18 +209,13 @@ func (c *RecommendArticles) storeGeneratedRecommendations(
 			position,
 			generatedAt,
 		); err != nil {
-			logger.WarnContext(ctx, "failed to store precomputed recommendation",
-				"user_id", userID, "position", position, "error", err)
-			return
+			return fmt.Errorf("storing recommendation at position %d: %w", position, err)
 		}
 	}
 
-	// Mark user as regenerated so background job doesn't redo work
-	if err := c.RegenerationStatus.MarkUserRegenerated(ctx, userID); err != nil {
-		logger.WarnContext(ctx, "failed to mark user as regenerated",
-			"user_id", userID, "error", err)
+	if err := marker.MarkUserRegenerated(ctx, userID); err != nil {
+		return fmt.Errorf("marking user as regenerated: %w", err)
 	}
 
-	logger.DebugContext(ctx, "stored on-demand recommendations",
-		"user_id", userID, "count", len(scored))
+	return nil
 }

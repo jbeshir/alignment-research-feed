@@ -456,47 +456,65 @@ func (r *Repository) GetUserArticleVectorsByType(
 	}
 }
 
+type vectorRow interface {
+	getArticleHashID() string
+	getVector() sql.NullString
+	getDateRated() sql.NullTime
+}
+
+type thumbsUpRow struct{ queries.GetUserArticleVectorsByThumbsUpRow }
+
+func (r thumbsUpRow) getArticleHashID() string  { return r.ArticleHashID }
+func (r thumbsUpRow) getVector() sql.NullString  { return r.Vector }
+func (r thumbsUpRow) getDateRated() sql.NullTime { return r.DateRated }
+
+type thumbsDownRow struct{ queries.GetUserArticleVectorsByThumbsDownRow }
+
+func (r thumbsDownRow) getArticleHashID() string  { return r.ArticleHashID }
+func (r thumbsDownRow) getVector() sql.NullString  { return r.Vector }
+func (r thumbsDownRow) getDateRated() sql.NullTime { return r.DateRated }
+
 func convertVectorRows(
 	rows []queries.GetUserArticleVectorsByThumbsUpRow,
 	ratingType domain.UserRatingType,
 ) ([]domain.UserArticleRating, error) {
-	result := make([]domain.UserArticleRating, 0, len(rows))
-	for _, row := range rows {
-		if !row.Vector.Valid {
-			continue // Skip rows without vectors
-		}
-		vector, err := bytesToFloat32Slice([]byte(row.Vector.String))
-		if err != nil {
-			return nil, fmt.Errorf("decoding vector for article %s: %w", row.ArticleHashID, err)
-		}
-		result = append(result, domain.UserArticleRating{
-			ArticleHashID: row.ArticleHashID,
-			Vector:        vector,
-			RatingType:    ratingType,
-			RatedAt:       row.DateRated.Time,
-		})
+	adapted := make([]vectorRow, len(rows))
+	for i := range rows {
+		adapted[i] = thumbsUpRow{rows[i]}
 	}
-	return result, nil
+	return convertVectorRowSlice(adapted, ratingType)
 }
 
 func convertVectorRowsDown(
 	rows []queries.GetUserArticleVectorsByThumbsDownRow,
 	ratingType domain.UserRatingType,
 ) ([]domain.UserArticleRating, error) {
+	adapted := make([]vectorRow, len(rows))
+	for i := range rows {
+		adapted[i] = thumbsDownRow{rows[i]}
+	}
+	return convertVectorRowSlice(adapted, ratingType)
+}
+
+func convertVectorRowSlice(
+	rows []vectorRow,
+	ratingType domain.UserRatingType,
+) ([]domain.UserArticleRating, error) {
 	result := make([]domain.UserArticleRating, 0, len(rows))
 	for _, row := range rows {
-		if !row.Vector.Valid {
-			continue // Skip rows without vectors
+		v := row.getVector()
+		if !v.Valid {
+			continue
 		}
-		vector, err := bytesToFloat32Slice([]byte(row.Vector.String))
+		vector, err := bytesToFloat32Slice([]byte(v.String))
 		if err != nil {
-			return nil, fmt.Errorf("decoding vector for article %s: %w", row.ArticleHashID, err)
+			return nil, fmt.Errorf("decoding vector for article %s: %w", row.getArticleHashID(), err)
 		}
 		result = append(result, domain.UserArticleRating{
-			ArticleHashID: row.ArticleHashID,
+			ArticleHashID: row.getArticleHashID(),
 			Vector:        vector,
 			RatingType:    ratingType,
-			RatedAt:       row.DateRated.Time,
+			RatedAt:       row.getDateRated().Time,
 		})
 	}
 	return result, nil

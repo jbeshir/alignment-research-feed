@@ -55,6 +55,10 @@ func (c ArticleRatingSet) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	userID := domain.UserIDFromContext(r.Context())
+	if userID == "" {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 	req := command.SetArticleRatingRequest{
 		UserID:        userID,
 		ArticleHashID: articleID,
