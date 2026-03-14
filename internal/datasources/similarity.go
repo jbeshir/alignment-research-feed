@@ -17,7 +17,7 @@ type SimilarArticleLister interface {
 	ListSimilarArticles(
 		ctx context.Context,
 		hashIDs []string,
-		count int,
+		limit int,
 	) ([]domain.SimilarArticle, error)
 }
 

@@ -107,8 +107,8 @@ func (_c *SimilarityRepository_FetchArticleVector_Call) RunAndReturn(run func(ct
 }
 
 // ListSimilarArticles provides a mock function for the type SimilarityRepository
-func (_mock *SimilarityRepository) ListSimilarArticles(ctx context.Context, hashIDs []string, count int) ([]domain.SimilarArticle, error) {
-	ret := _mock.Called(ctx, hashIDs, count)
+func (_mock *SimilarityRepository) ListSimilarArticles(ctx context.Context, hashIDs []string, limit int) ([]domain.SimilarArticle, error) {
+	ret := _mock.Called(ctx, hashIDs, limit)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ListSimilarArticles")
@@ -117,17 +117,17 @@ func (_mock *SimilarityRepository) ListSimilarArticles(ctx context.Context, hash
 	var r0 []domain.SimilarArticle
 	var r1 error
 	if returnFunc, ok := ret.Get(0).(func(context.Context, []string, int) ([]domain.SimilarArticle, error)); ok {
-		return returnFunc(ctx, hashIDs, count)
+		return returnFunc(ctx, hashIDs, limit)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, []string, int) []domain.SimilarArticle); ok {
-		r0 = returnFunc(ctx, hashIDs, count)
+		r0 = returnFunc(ctx, hashIDs, limit)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).([]domain.SimilarArticle)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, []string, int) error); ok {
-		r1 = returnFunc(ctx, hashIDs, count)
+		r1 = returnFunc(ctx, hashIDs, limit)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -142,12 +142,12 @@ type SimilarityRepository_ListSimilarArticles_Call struct {
 // ListSimilarArticles is a helper method to define mock.On call
 //   - ctx context.Context
 //   - hashIDs []string
-//   - count int
-func (_e *SimilarityRepository_Expecter) ListSimilarArticles(ctx interface{}, hashIDs interface{}, count interface{}) *SimilarityRepository_ListSimilarArticles_Call {
-	return &SimilarityRepository_ListSimilarArticles_Call{Call: _e.mock.On("ListSimilarArticles", ctx, hashIDs, count)}
+//   - limit int
+func (_e *SimilarityRepository_Expecter) ListSimilarArticles(ctx interface{}, hashIDs interface{}, limit interface{}) *SimilarityRepository_ListSimilarArticles_Call {
+	return &SimilarityRepository_ListSimilarArticles_Call{Call: _e.mock.On("ListSimilarArticles", ctx, hashIDs, limit)}
 }
 
-func (_c *SimilarityRepository_ListSimilarArticles_Call) Run(run func(ctx context.Context, hashIDs []string, count int)) *SimilarityRepository_ListSimilarArticles_Call {
+func (_c *SimilarityRepository_ListSimilarArticles_Call) Run(run func(ctx context.Context, hashIDs []string, limit int)) *SimilarityRepository_ListSimilarArticles_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -175,7 +175,7 @@ func (_c *SimilarityRepository_ListSimilarArticles_Call) Return(similarArticles 
 	return _c
 }
 
-func (_c *SimilarityRepository_ListSimilarArticles_Call) RunAndReturn(run func(ctx context.Context, hashIDs []string, count int) ([]domain.SimilarArticle, error)) *SimilarityRepository_ListSimilarArticles_Call {
+func (_c *SimilarityRepository_ListSimilarArticles_Call) RunAndReturn(run func(ctx context.Context, hashIDs []string, limit int) ([]domain.SimilarArticle, error)) *SimilarityRepository_ListSimilarArticles_Call {
 	_c.Call.Return(run)
 	return _c
 }

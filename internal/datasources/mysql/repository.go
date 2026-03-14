@@ -242,7 +242,11 @@ func (r *Repository) FetchArticlesByID(
 
 		var keyPoints []string
 		if dbArticle.KeyPoints.Valid && dbArticle.KeyPoints.String != "" {
-			_ = json.Unmarshal([]byte(dbArticle.KeyPoints.String), &keyPoints)
+			if err := json.Unmarshal([]byte(dbArticle.KeyPoints.String), &keyPoints); err != nil {
+				logger := domain.LoggerFromContext(ctx)
+				logger.WarnContext(ctx, "failed to parse key_points JSON",
+					"article_hash_id", dbArticle.HashID, "error", err)
+			}
 		}
 
 		var publishedAt *time.Time
@@ -301,7 +305,7 @@ func (r *Repository) TotalMatchingArticles(
 	if err != nil {
 		return 0, fmt.Errorf("counting matching articles: %w", err)
 	}
-	return count, err
+	return count, nil
 }
 
 func buildArticlesConditions(sb *sqlbuilder.SelectBuilder, filters domain.ArticleFilters) []string {
