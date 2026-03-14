@@ -21,7 +21,7 @@ func TestArticleRatingSet_ServeHTTP(t *testing.T) {
 
 	cases := []struct {
 		name          string
-		ratingType    RatingType
+		ratingType    domain.UserRatingType
 		articleID     string
 		ratingValue   string
 		userID        string
@@ -34,7 +34,7 @@ func TestArticleRatingSet_ServeHTTP(t *testing.T) {
 	}{
 		{
 			name:        "thumbs_up_true",
-			ratingType:  RatingTypeThumbsUp,
+			ratingType:  domain.RatingTypeThumbsUp,
 			articleID:   "hash123",
 			ratingValue: "true",
 			userID:      "user456",
@@ -45,7 +45,7 @@ func TestArticleRatingSet_ServeHTTP(t *testing.T) {
 		},
 		{
 			name:        "thumbs_up_false",
-			ratingType:  RatingTypeThumbsUp,
+			ratingType:  domain.RatingTypeThumbsUp,
 			articleID:   "hash123",
 			ratingValue: "false",
 			userID:      "user456",
@@ -56,7 +56,7 @@ func TestArticleRatingSet_ServeHTTP(t *testing.T) {
 		},
 		{
 			name:          "thumbs_up_invalid",
-			ratingType:    RatingTypeThumbsUp,
+			ratingType:    domain.RatingTypeThumbsUp,
 			articleID:     "hash123",
 			ratingValue:   "invalid",
 			userID:        "user456",
@@ -66,7 +66,7 @@ func TestArticleRatingSet_ServeHTTP(t *testing.T) {
 		},
 		{
 			name:        "thumbs_down_true",
-			ratingType:  RatingTypeThumbsDown,
+			ratingType:  domain.RatingTypeThumbsDown,
 			articleID:   "hash123",
 			ratingValue: "true",
 			userID:      "user456",
@@ -77,7 +77,7 @@ func TestArticleRatingSet_ServeHTTP(t *testing.T) {
 		},
 		{
 			name:        "thumbs_down_false",
-			ratingType:  RatingTypeThumbsDown,
+			ratingType:  domain.RatingTypeThumbsDown,
 			articleID:   "hash123",
 			ratingValue: "false",
 			userID:      "user456",
@@ -88,7 +88,7 @@ func TestArticleRatingSet_ServeHTTP(t *testing.T) {
 		},
 		{
 			name:          "thumbs_down_invalid",
-			ratingType:    RatingTypeThumbsDown,
+			ratingType:    domain.RatingTypeThumbsDown,
 			articleID:     "hash123",
 			ratingValue:   "invalid",
 			userID:        "user456",
@@ -98,7 +98,7 @@ func TestArticleRatingSet_ServeHTTP(t *testing.T) {
 		},
 		{
 			name:          "fetch_error",
-			ratingType:    RatingTypeThumbsUp,
+			ratingType:    domain.RatingTypeThumbsUp,
 			articleID:     "hash123",
 			ratingValue:   "true",
 			userID:        "user456",
@@ -108,7 +108,7 @@ func TestArticleRatingSet_ServeHTTP(t *testing.T) {
 		},
 		{
 			name:        "set_rating_error",
-			ratingType:  RatingTypeThumbsUp,
+			ratingType:  domain.RatingTypeThumbsUp,
 			articleID:   "hash123",
 			ratingValue: "true",
 			userID:      "user456",
@@ -137,9 +137,10 @@ func TestArticleRatingSet_ServeHTTP(t *testing.T) {
 					UserID:        tc.userID,
 					ArticleHashID: tc.articleID,
 				}
-				if tc.ratingType == RatingTypeThumbsUp {
+				switch tc.ratingType {
+				case domain.RatingTypeThumbsUp:
 					req.ThumbsUp = ratingEnabled
-				} else {
+				default:
 					req.ThumbsDown = ratingEnabled
 				}
 				setRatingCmd.EXPECT().
@@ -153,20 +154,14 @@ func TestArticleRatingSet_ServeHTTP(t *testing.T) {
 				RatingType:   tc.ratingType,
 			}
 
-			var varName, urlPath string
-			if tc.ratingType == RatingTypeThumbsUp {
-				varName = "thumbs_up"
-				urlPath = "/articles/" + tc.articleID + "/thumbs_up/" + tc.ratingValue
-			} else {
-				varName = "thumbs_down"
-				urlPath = "/articles/" + tc.articleID + "/thumbs_down/" + tc.ratingValue
-			}
+			paramName := string(tc.ratingType)
+			urlPath := "/articles/" + tc.articleID + "/" + paramName + "/" + tc.ratingValue
 
 			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, urlPath, nil)
 			req = testContextWithUserID(tc.userID)(req)
 			req = mux.SetURLVars(req, map[string]string{
 				"article_id": tc.articleID,
-				varName:      tc.ratingValue,
+				paramName:    tc.ratingValue,
 			})
 			rec := httptest.NewRecorder()
 
