@@ -69,10 +69,12 @@ type ReadArticleIDsLister interface {
 }
 
 // ArticleRatingSetter atomically sets thumbs up/down.
+// thumbsUp/thumbsDown are pointers: nil means "don't change".
+// Setting either to true automatically clears the other (mutual exclusivity).
 type ArticleRatingSetter interface {
 	SetArticleRating(
 		ctx context.Context, userID, articleHashID string,
-		thumbsUp, thumbsDown bool, vector []float32,
+		thumbsUp, thumbsDown *bool, vector []float32,
 	) error
 }
 

@@ -40,14 +40,18 @@ func (r *Repository) SetArticleRead(ctx context.Context, hashID, userID string, 
 
 // interactionState captures the current state of a user-article interaction.
 type interactionState struct {
-	currentHaveRead bool
-	currentDateRead sql.NullTime
+	currentHaveRead  bool
+	currentDateRead  sql.NullTime
+	currentThumbsUp  bool
+	currentThumbsDown bool
+	currentDateRated sql.NullTime
 }
 
 // SetArticleRating atomically sets thumbs up/down.
+// nil pointers mean "don't change". Setting either to true forces the other to false.
 func (r *Repository) SetArticleRating(
 	ctx context.Context, userID, articleHashID string,
-	thumbsUp, thumbsDown bool, vector []float32,
+	thumbsUp, thumbsDown *bool, vector []float32,
 ) error {
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
@@ -88,23 +92,50 @@ func (r *Repository) getCurrentInteractionState(
 		return interactionState{}, fmt.Errorf("getting current interaction: %w", err)
 	}
 	return interactionState{
-		currentHaveRead: current.HaveRead,
-		currentDateRead: current.DateRead,
+		currentHaveRead:   current.HaveRead,
+		currentDateRead:   current.DateRead,
+		currentThumbsUp:   current.ThumbsUp,
+		currentThumbsDown: current.ThumbsDown,
+		currentDateRated:  current.DateRated,
 	}, nil
+}
+
+// resolveRating merges a rating update with existing state.
+// nil means "don't change". Setting to true forces the opposite to false.
+func resolveRating(thumbsUp, thumbsDown *bool, state interactionState) (up, down bool) {
+	up = state.currentThumbsUp
+	down = state.currentThumbsDown
+
+	if thumbsUp != nil {
+		up = *thumbsUp
+		if up {
+			down = false
+		}
+	}
+	if thumbsDown != nil {
+		down = *thumbsDown
+		if down {
+			up = false
+		}
+	}
+
+	return up, down
 }
 
 // upsertInteraction stores the interaction record.
 func (r *Repository) upsertInteraction(
 	ctx context.Context, qtx *queries.Queries, userID, articleHashID string,
-	thumbsUp, thumbsDown bool, vector []float32, state interactionState,
+	thumbsUp, thumbsDown *bool, vector []float32, state interactionState,
 ) error {
 	var vectorStr sql.NullString
 	if vector != nil {
 		vectorStr = sql.NullString{String: string(float32SliceToBytes(vector)), Valid: true}
 	}
 
-	var dateRated sql.NullTime
-	if thumbsUp || thumbsDown {
+	resolvedUp, resolvedDown := resolveRating(thumbsUp, thumbsDown, state)
+
+	dateRated := state.currentDateRated
+	if resolvedUp || resolvedDown {
 		dateRated = sql.NullTime{Time: time.Now(), Valid: true}
 	}
 
@@ -112,8 +143,8 @@ func (r *Repository) upsertInteraction(
 		UserID:        userID,
 		ArticleHashID: articleHashID,
 		HaveRead:      state.currentHaveRead,
-		ThumbsUp:      thumbsUp,
-		ThumbsDown:    thumbsDown,
+		ThumbsUp:      resolvedUp,
+		ThumbsDown:    resolvedDown,
 		DateRead:      state.currentDateRead,
 		DateRated:     dateRated,
 		Vector:        vectorStr,

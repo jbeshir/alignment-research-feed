@@ -139,9 +139,9 @@ func TestArticleRatingSet_ServeHTTP(t *testing.T) {
 				}
 				switch tc.ratingType {
 				case domain.RatingTypeThumbsUp:
-					req.ThumbsUp = ratingEnabled
+					req.ThumbsUp = &ratingEnabled
 				default:
-					req.ThumbsDown = ratingEnabled
+					req.ThumbsDown = &ratingEnabled
 				}
 				setRatingCmd.EXPECT().
 					Execute(mock.Anything, req).

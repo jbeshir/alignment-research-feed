@@ -52,9 +52,9 @@ func (c ArticleRatingSet) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		ArticleHashID: articleID,
 	}
 	if c.RatingType == domain.RatingTypeThumbsUp {
-		req.ThumbsUp = ratingValue
+		req.ThumbsUp = &ratingValue
 	} else {
-		req.ThumbsDown = ratingValue
+		req.ThumbsDown = &ratingValue
 	}
 
 	if _, err := c.SetRatingCmd.Execute(ctx, req); err != nil {
