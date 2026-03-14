@@ -612,21 +612,14 @@ func (r *Repository) DeleteUserInterestClusters(ctx context.Context, userID stri
 // ============================================
 
 // UpsertPrecomputedRecommendation stores or updates a precomputed recommendation.
-func (r *Repository) UpsertPrecomputedRecommendation(
-	ctx context.Context,
-	userID, articleHashID string,
-	score float64,
-	source string,
-	position int,
-	generatedAt time.Time,
-) error {
+func (r *Repository) UpsertPrecomputedRecommendation(ctx context.Context, params datasources.UpsertPrecomputedRecommendationParams) error {
 	return r.queries.UpsertPrecomputedRecommendation(ctx, queries.UpsertPrecomputedRecommendationParams{
-		UserID:        userID,
-		ArticleHashID: articleHashID,
-		Score:         score,
-		Source:        source,
-		Position:      int32(position), //nolint:gosec // positions are small
-		GeneratedAt:   generatedAt,
+		UserID:        params.UserID,
+		ArticleHashID: params.ArticleHashID,
+		Score:         params.Score,
+		Source:        params.Source,
+		Position:      int32(params.Position), //nolint:gosec // positions are small
+		GeneratedAt:   params.GeneratedAt,
 	})
 }
 
@@ -717,27 +710,22 @@ func (r *Repository) ListUsersNeedingRegeneration(ctx context.Context) ([]string
 // ============================================
 
 // CreateAPIToken creates a new API token.
-func (r *Repository) CreateAPIToken(
-	ctx context.Context,
-	id, userID, tokenHash, tokenPrefix string,
-	name *string,
-	expiresAt *time.Time,
-) error {
+func (r *Repository) CreateAPIToken(ctx context.Context, params datasources.CreateAPITokenParams) error {
 	var nameStr sql.NullString
-	if name != nil {
-		nameStr = sql.NullString{String: *name, Valid: true}
+	if params.Name != nil {
+		nameStr = sql.NullString{String: *params.Name, Valid: true}
 	}
 
 	var expiresAtTime sql.NullTime
-	if expiresAt != nil {
-		expiresAtTime = sql.NullTime{Time: *expiresAt, Valid: true}
+	if params.ExpiresAt != nil {
+		expiresAtTime = sql.NullTime{Time: *params.ExpiresAt, Valid: true}
 	}
 
 	return r.queries.CreateAPIToken(ctx, queries.CreateAPITokenParams{
-		ID:          id,
-		UserID:      userID,
-		TokenHash:   tokenHash,
-		TokenPrefix: tokenPrefix,
+		ID:          params.ID,
+		UserID:      params.UserID,
+		TokenHash:   params.TokenHash,
+		TokenPrefix: params.TokenPrefix,
 		Name:        nameStr,
 		ExpiresAt:   expiresAtTime,
 	})

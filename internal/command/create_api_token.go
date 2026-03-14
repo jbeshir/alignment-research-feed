@@ -81,7 +81,13 @@ func (c *CreateAPIToken) Execute(ctx context.Context, req CreateAPITokenRequest)
 	tokenID := uuid.New().String()
 
 	// Store in database
-	if err := c.TokenCreator.CreateAPIToken(ctx, tokenID, req.UserID, tokenHash, tokenPrefix, req.Name, nil); err != nil {
+	if err := c.TokenCreator.CreateAPIToken(ctx, datasources.CreateAPITokenParams{
+		ID:          tokenID,
+		UserID:      req.UserID,
+		TokenHash:   tokenHash,
+		TokenPrefix: tokenPrefix,
+		Name:        req.Name,
+	}); err != nil {
 		return CreateAPITokenResponse{}, fmt.Errorf("creating token: %w", err)
 	}
 

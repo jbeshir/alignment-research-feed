@@ -237,16 +237,16 @@ func (_c *PrecomputedRecommendationStore_GetPrecomputedRecommendations_Call) Run
 }
 
 // UpsertPrecomputedRecommendation provides a mock function for the type PrecomputedRecommendationStore
-func (_mock *PrecomputedRecommendationStore) UpsertPrecomputedRecommendation(ctx context.Context, userID string, articleHashID string, score float64, source string, position int, generatedAt time.Time) error {
-	ret := _mock.Called(ctx, userID, articleHashID, score, source, position, generatedAt)
+func (_mock *PrecomputedRecommendationStore) UpsertPrecomputedRecommendation(ctx context.Context, params datasources.UpsertPrecomputedRecommendationParams) error {
+	ret := _mock.Called(ctx, params)
 
 	if len(ret) == 0 {
 		panic("no return value specified for UpsertPrecomputedRecommendation")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, float64, string, int, time.Time) error); ok {
-		r0 = returnFunc(ctx, userID, articleHashID, score, source, position, generatedAt)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, datasources.UpsertPrecomputedRecommendationParams) error); ok {
+		r0 = returnFunc(ctx, params)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -266,49 +266,13 @@ type PrecomputedRecommendationStore_UpsertPrecomputedRecommendation_Call struct 
 //   - source string
 //   - position int
 //   - generatedAt time.Time
-func (_e *PrecomputedRecommendationStore_Expecter) UpsertPrecomputedRecommendation(ctx interface{}, userID interface{}, articleHashID interface{}, score interface{}, source interface{}, position interface{}, generatedAt interface{}) *PrecomputedRecommendationStore_UpsertPrecomputedRecommendation_Call {
-	return &PrecomputedRecommendationStore_UpsertPrecomputedRecommendation_Call{Call: _e.mock.On("UpsertPrecomputedRecommendation", ctx, userID, articleHashID, score, source, position, generatedAt)}
+func (_e *PrecomputedRecommendationStore_Expecter) UpsertPrecomputedRecommendation(ctx interface{}, params interface{}) *PrecomputedRecommendationStore_UpsertPrecomputedRecommendation_Call {
+	return &PrecomputedRecommendationStore_UpsertPrecomputedRecommendation_Call{Call: _e.mock.On("UpsertPrecomputedRecommendation", ctx, params)}
 }
 
-func (_c *PrecomputedRecommendationStore_UpsertPrecomputedRecommendation_Call) Run(run func(ctx context.Context, userID string, articleHashID string, score float64, source string, position int, generatedAt time.Time)) *PrecomputedRecommendationStore_UpsertPrecomputedRecommendation_Call {
+func (_c *PrecomputedRecommendationStore_UpsertPrecomputedRecommendation_Call) Run(run func(ctx context.Context, params datasources.UpsertPrecomputedRecommendationParams)) *PrecomputedRecommendationStore_UpsertPrecomputedRecommendation_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		var arg2 string
-		if args[2] != nil {
-			arg2 = args[2].(string)
-		}
-		var arg3 float64
-		if args[3] != nil {
-			arg3 = args[3].(float64)
-		}
-		var arg4 string
-		if args[4] != nil {
-			arg4 = args[4].(string)
-		}
-		var arg5 int
-		if args[5] != nil {
-			arg5 = args[5].(int)
-		}
-		var arg6 time.Time
-		if args[6] != nil {
-			arg6 = args[6].(time.Time)
-		}
-		run(
-			arg0,
-			arg1,
-			arg2,
-			arg3,
-			arg4,
-			arg5,
-			arg6,
-		)
+		run(args[0].(context.Context), args[1].(datasources.UpsertPrecomputedRecommendationParams))
 	})
 	return _c
 }
@@ -318,7 +282,7 @@ func (_c *PrecomputedRecommendationStore_UpsertPrecomputedRecommendation_Call) R
 	return _c
 }
 
-func (_c *PrecomputedRecommendationStore_UpsertPrecomputedRecommendation_Call) RunAndReturn(run func(ctx context.Context, userID string, articleHashID string, score float64, source string, position int, generatedAt time.Time) error) *PrecomputedRecommendationStore_UpsertPrecomputedRecommendation_Call {
+func (_c *PrecomputedRecommendationStore_UpsertPrecomputedRecommendation_Call) RunAndReturn(run func(ctx context.Context, params datasources.UpsertPrecomputedRecommendationParams) error) *PrecomputedRecommendationStore_UpsertPrecomputedRecommendation_Call {
 	_c.Call.Return(run)
 	return _c
 }

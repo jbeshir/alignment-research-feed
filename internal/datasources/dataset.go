@@ -145,16 +145,19 @@ type PrecomputedRecommendation struct {
 	GeneratedAt   time.Time
 }
 
+// UpsertPrecomputedRecommendationParams holds the parameters for upserting a precomputed recommendation.
+type UpsertPrecomputedRecommendationParams struct {
+	UserID        string
+	ArticleHashID string
+	Score         float64
+	Source        string
+	Position      int
+	GeneratedAt   time.Time
+}
+
 // PrecomputedRecommendationUpserter stores or updates a precomputed recommendation.
 type PrecomputedRecommendationUpserter interface {
-	UpsertPrecomputedRecommendation(
-		ctx context.Context,
-		userID, articleHashID string,
-		score float64,
-		source string,
-		position int,
-		generatedAt time.Time,
-	) error
+	UpsertPrecomputedRecommendation(ctx context.Context, params UpsertPrecomputedRecommendationParams) error
 }
 
 // PrecomputedRecommendationDeleter removes all precomputed recommendations for a user.

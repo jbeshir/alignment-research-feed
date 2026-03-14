@@ -200,15 +200,14 @@ func storePrecomputedRecommendations(
 
 	generatedAt := time.Now()
 	for position, article := range scored {
-		if err := writer.UpsertPrecomputedRecommendation(
-			ctx,
-			userID,
-			article.HashID,
-			article.Score,
-			article.Source,
-			position,
-			generatedAt,
-		); err != nil {
+		if err := writer.UpsertPrecomputedRecommendation(ctx, datasources.UpsertPrecomputedRecommendationParams{
+			UserID:        userID,
+			ArticleHashID: article.HashID,
+			Score:         article.Score,
+			Source:        article.Source,
+			Position:      position,
+			GeneratedAt:   generatedAt,
+		}); err != nil {
 			return fmt.Errorf("storing recommendation at position %d: %w", position, err)
 		}
 	}
