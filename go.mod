@@ -1,6 +1,6 @@
 module github.com/jbeshir/alignment-research-feed
 
-go 1.25.0
+go 1.27.3
 
 require (
 	github.com/auth0/go-jwt-middleware/v2 v2.3.0

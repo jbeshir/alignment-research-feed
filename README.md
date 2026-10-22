@@ -136,7 +136,7 @@ sequenceDiagram
 
 ### Prerequisites
 
-- Go 1.25+
+- Go 1.27.3+
 - Docker and Docker Compose (for local MySQL)
 - Make
 
