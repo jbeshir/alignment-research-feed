@@ -29,7 +29,7 @@ func TestRecommendedArticlesList_ServeHTTP(t *testing.T) {
 	}{
 		{
 			name:   "successful_recommendations",
-			userID: "user456",
+			userID: testUserID,
 			articles: []domain.Article{
 				{HashID: "rec1", Title: "Recommended 1", PublishedAt: &testTime},
 				{HashID: "rec2", Title: "Recommended 2", PublishedAt: &testTime},
@@ -47,14 +47,14 @@ func TestRecommendedArticlesList_ServeHTTP(t *testing.T) {
 		},
 		{
 			name:         "no_recommendations",
-			userID:       "user456",
+			userID:       testUserID,
 			articles:     nil,
 			wantStatus:   http.StatusOK,
 			wantArticles: []domain.Article{},
 		},
 		{
 			name:       "command_error",
-			userID:     "user456",
+			userID:     testUserID,
 			commandErr: errors.New("database error"),
 			wantStatus: http.StatusInternalServerError,
 		},

@@ -31,49 +31,49 @@ func TestArticleReadSet_ServeHTTP(t *testing.T) {
 	}{
 		{
 			name:      "set_read_true",
-			articleID: "hash123",
-			readValue: "true",
-			userID:    "user456",
+			articleID: testArticleID,
+			readValue: boolTrue,
+			userID:    testUserID,
 			articles: []domain.Article{
-				{HashID: "hash123", Title: "Test", PublishedAt: &testTime},
+				{HashID: testArticleID, Title: testTitle, PublishedAt: &testTime},
 			},
 			wantStatus: http.StatusNoContent,
 		},
 		{
 			name:      "set_read_false",
-			articleID: "hash123",
-			readValue: "false",
-			userID:    "user456",
+			articleID: testArticleID,
+			readValue: boolFalse,
+			userID:    testUserID,
 			articles: []domain.Article{
-				{HashID: "hash123", Title: "Test", PublishedAt: &testTime},
+				{HashID: testArticleID, Title: testTitle, PublishedAt: &testTime},
 			},
 			wantStatus: http.StatusNoContent,
 		},
 		{
 			name:       "invalid_read_value",
-			articleID:  "hash123",
-			readValue:  "invalid",
-			userID:     "user456",
+			articleID:  testArticleID,
+			readValue:  testInvalidValue,
+			userID:     testUserID,
 			wantStatus: http.StatusBadRequest,
 			skipFetch:  true,
 			skipSet:    true,
 		},
 		{
-			name:       "fetch_error",
-			articleID:  "hash123",
-			readValue:  "true",
-			userID:     "user456",
+			name:       testFetchErrorCaseName,
+			articleID:  testArticleID,
+			readValue:  boolTrue,
+			userID:     testUserID,
 			fetchErr:   errors.New("database error"),
 			wantStatus: http.StatusInternalServerError,
 			skipSet:    true,
 		},
 		{
 			name:      "set_error",
-			articleID: "hash123",
-			readValue: "true",
-			userID:    "user456",
+			articleID: testArticleID,
+			readValue: boolTrue,
+			userID:    testUserID,
 			articles: []domain.Article{
-				{HashID: "hash123", Title: "Test", PublishedAt: &testTime},
+				{HashID: testArticleID, Title: testTitle, PublishedAt: &testTime},
 			},
 			setErr:     errors.New("database error"),
 			wantStatus: http.StatusInternalServerError,
@@ -106,8 +106,8 @@ func TestArticleReadSet_ServeHTTP(t *testing.T) {
 			req := httptest.NewRequestWithContext(t.Context(), http.MethodPost, "/articles/"+tc.articleID+"/read/"+tc.readValue, nil)
 			req = testContextWithUserID(tc.userID)(req)
 			req = mux.SetURLVars(req, map[string]string{
-				"article_id": tc.articleID,
-				"read":       tc.readValue,
+				muxVarArticleID: tc.articleID,
+				"read":          tc.readValue,
 			})
 			rec := httptest.NewRecorder()
 

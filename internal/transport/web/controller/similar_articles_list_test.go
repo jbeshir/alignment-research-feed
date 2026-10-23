@@ -35,63 +35,63 @@ func TestSimilarArticlesList_ServeHTTP(t *testing.T) {
 	}{
 		{
 			name:         "successful_similar_articles",
-			articleID:    "hash123",
+			articleID:    testArticleID,
 			setupContext: testContext(),
 			similarResult: []domain.SimilarArticle{
-				{HashID: "similar1", Score: 0.9},
-				{HashID: "similar2", Score: 0.8},
+				{HashID: testSimilarHashID1, Score: 0.9},
+				{HashID: testSimilarHashID2, Score: 0.8},
 			},
 			articles: []domain.Article{
-				{HashID: "similar1", Title: "Similar Article 1", PublishedAt: &testTime},
-				{HashID: "similar2", Title: "Similar Article 2", PublishedAt: &testTime},
+				{HashID: testSimilarHashID1, Title: testSimilarTitle1, PublishedAt: &testTime},
+				{HashID: testSimilarHashID2, Title: testSimilarTitle2, PublishedAt: &testTime},
 			},
 			wantStatus:    http.StatusOK,
-			wantCacheCtrl: "max-age=3600",
+			wantCacheCtrl: testMaxAgeCacheControl,
 			wantArticles: []domain.Article{
-				{HashID: "similar1", Title: "Similar Article 1", PublishedAt: &testTime},
-				{HashID: "similar2", Title: "Similar Article 2", PublishedAt: &testTime},
+				{HashID: testSimilarHashID1, Title: testSimilarTitle1, PublishedAt: &testTime},
+				{HashID: testSimilarHashID2, Title: testSimilarTitle2, PublishedAt: &testTime},
 			},
 		},
 		{
-			name:         "no_cache_for_authenticated_user",
-			articleID:    "hash123",
-			setupContext: testContextWithUserID("user456"),
+			name:         testNoCacheCaseName,
+			articleID:    testArticleID,
+			setupContext: testContextWithUserID(testUserID),
 			similarResult: []domain.SimilarArticle{
-				{HashID: "similar1", Score: 0.9},
+				{HashID: testSimilarHashID1, Score: 0.9},
 			},
 			articles: []domain.Article{
-				{HashID: "similar1", Title: "Similar Article 1", PublishedAt: &testTime},
+				{HashID: testSimilarHashID1, Title: testSimilarTitle1, PublishedAt: &testTime},
 			},
 			wantStatus:    http.StatusOK,
 			wantCacheCtrl: "",
 			wantArticles: []domain.Article{
-				{HashID: "similar1", Title: "Similar Article 1", PublishedAt: &testTime},
+				{HashID: testSimilarHashID1, Title: testSimilarTitle1, PublishedAt: &testTime},
 			},
 		},
 		{
 			name:          "empty_similar_articles",
-			articleID:     "hash123",
+			articleID:     testArticleID,
 			setupContext:  testContext(),
 			similarResult: []domain.SimilarArticle{},
 			articles:      []domain.Article{},
 			wantStatus:    http.StatusOK,
-			wantCacheCtrl: "max-age=3600",
+			wantCacheCtrl: testMaxAgeCacheControl,
 			wantArticles:  []domain.Article{},
 		},
 		{
 			name:         "similarity_error",
-			articleID:    "hash123",
+			articleID:    testArticleID,
 			setupContext: testContext(),
 			similarErr:   errors.New("pinecone error"),
 			wantStatus:   http.StatusInternalServerError,
 			skipFetch:    true,
 		},
 		{
-			name:         "fetch_error",
-			articleID:    "hash123",
+			name:         testFetchErrorCaseName,
+			articleID:    testArticleID,
 			setupContext: testContext(),
 			similarResult: []domain.SimilarArticle{
-				{HashID: "similar1", Score: 0.9},
+				{HashID: testSimilarHashID1, Score: 0.9},
 			},
 			fetchErr:   errors.New("database error"),
 			wantStatus: http.StatusInternalServerError,
@@ -135,7 +135,7 @@ func TestSimilarArticlesList_ServeHTTP(t *testing.T) {
 
 			req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/articles/"+tc.articleID+"/similar", nil)
 			req = tc.setupContext(req)
-			req = mux.SetURLVars(req, map[string]string{"article_id": tc.articleID})
+			req = mux.SetURLVars(req, map[string]string{muxVarArticleID: tc.articleID})
 			rec := httptest.NewRecorder()
 
 			controller.ServeHTTP(rec, req)

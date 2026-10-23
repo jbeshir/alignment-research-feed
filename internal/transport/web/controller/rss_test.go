@@ -78,7 +78,7 @@ func TestRSS_ServeHTTP(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Equal(t, "text/xml", rec.Header().Get("Content-Type"))
-		assert.Equal(t, "max-age=3600", rec.Header().Get("Cache-Control"))
+		assert.Equal(t, testMaxAgeCacheControl, rec.Header().Get("Cache-Control"))
 
 		body := rec.Body.String()
 

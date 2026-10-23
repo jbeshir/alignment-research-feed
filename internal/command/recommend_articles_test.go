@@ -12,6 +12,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+const (
+	testRatedArticleHashID = "art1"
+	testRecommendedHashID  = "rec1"
+)
+
 // testGenerateRecommendationsConfig returns a config for testing.
 func testGenerateRecommendationsConfig() GenerateRecommendationsConfig {
 	return GenerateRecommendationsConfig{
@@ -63,22 +68,22 @@ func TestGenerateRecommendations_Execute(t *testing.T) {
 		{
 			name: "successful_recommendation",
 			thumbsUpVecs: []domain.UserArticleRating{
-				{ArticleHashID: "art1", Vector: []float32{1.0, 0.0, 0.0}, RatedAt: now},
+				{ArticleHashID: testRatedArticleHashID, Vector: []float32{1.0, 0.0, 0.0}, RatedAt: now},
 				{ArticleHashID: "art2", Vector: []float32{0.0, 1.0, 0.0}, RatedAt: now},
 			},
 			similar: []domain.SimilarArticle{
-				{HashID: "rec1", Score: 0.9},
+				{HashID: testRecommendedHashID, Score: 0.9},
 				{HashID: "rec2", Score: 0.8},
 			},
 			expected: []ScoredArticle{
-				{HashID: "rec1", Score: 0.9, Source: "temporal"},
+				{HashID: testRecommendedHashID, Score: 0.9, Source: "temporal"},
 				{HashID: "rec2", Score: 0.8, Source: "temporal"},
 			},
 		},
 		{
 			name: "no_similar_articles_returns_nil",
 			thumbsUpVecs: []domain.UserArticleRating{
-				{ArticleHashID: "art1", Vector: []float32{1.0, 0.0, 0.0}, RatedAt: now},
+				{ArticleHashID: testRatedArticleHashID, Vector: []float32{1.0, 0.0, 0.0}, RatedAt: now},
 			},
 			similar:  []domain.SimilarArticle{},
 			expected: nil,
@@ -153,7 +158,7 @@ func TestGenerateRecommendations_Execute_WithNegativeSignals(t *testing.T) {
 	readArticlesLister := mocks.NewReadArticleIDsLister(t)
 
 	thumbsUpVecs := []domain.UserArticleRating{
-		{ArticleHashID: "art1", Vector: []float32{1.0, 0.0, 0.0}, RatedAt: now},
+		{ArticleHashID: testRatedArticleHashID, Vector: []float32{1.0, 0.0, 0.0}, RatedAt: now},
 	}
 	thumbsDownVecs := []domain.UserArticleRating{
 		{ArticleHashID: "bad1", Vector: []float32{0.0, 0.0, 1.0}, RatedAt: now},
@@ -176,7 +181,7 @@ func TestGenerateRecommendations_Execute_WithNegativeSignals(t *testing.T) {
 		Return(nil, nil)
 
 	similar := []domain.SimilarArticle{
-		{HashID: "rec1", Score: 0.9},
+		{HashID: testRecommendedHashID, Score: 0.9},
 	}
 
 	vectorSimilarity.EXPECT().
@@ -195,7 +200,7 @@ func TestGenerateRecommendations_Execute_WithNegativeSignals(t *testing.T) {
 
 	require.NoError(t, err)
 	require.Len(t, result, 1)
-	assert.Equal(t, "rec1", result[0].HashID)
+	assert.Equal(t, testRecommendedHashID, result[0].HashID)
 	// Score should be penalized: 0.9 - (0.3 * 0.9 * 0.5) = 0.765
 	assert.InDelta(t, 0.765, result[0].Score, 0.01)
 }

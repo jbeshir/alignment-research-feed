@@ -11,6 +11,9 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+// normalNamespace is the Pinecone namespace holding article vectors.
+const normalNamespace = "normal"
+
 var _ datasources.SimilarityRepository = (*Client)(nil)
 
 type Client struct {
@@ -59,7 +62,7 @@ func (c *Client) ListSimilarArticles(
 
 	idxConn, err := c.pinecone.Index(pinecone.NewIndexConnParams{
 		Host:      c.index.Host,
-		Namespace: "normal",
+		Namespace: normalNamespace,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating pinecone index connection: %w", err)
@@ -276,7 +279,7 @@ func averageVectors(vectors [][]float32) []float32 {
 func (c *Client) FetchArticleVector(ctx context.Context, hashID string) ([]float32, error) {
 	idxConn, err := c.pinecone.Index(pinecone.NewIndexConnParams{
 		Host:      c.index.Host,
-		Namespace: "normal",
+		Namespace: normalNamespace,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating pinecone index connection: %w", err)
@@ -306,7 +309,7 @@ func (c *Client) ListSimilarArticlesByVector(
 
 	idxConn, err := c.pinecone.Index(pinecone.NewIndexConnParams{
 		Host:      c.index.Host,
-		Namespace: "normal",
+		Namespace: normalNamespace,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("creating pinecone index connection: %w", err)

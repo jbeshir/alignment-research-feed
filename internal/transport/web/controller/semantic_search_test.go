@@ -40,17 +40,17 @@ func TestSemanticSearch_ServeHTTP(t *testing.T) {
 			body:        `{"text": "alignment research", "limit": 5}`,
 			embedVector: testVector,
 			similarResult: []domain.SimilarArticle{
-				{HashID: "hash1", Score: 0.9},
-				{HashID: "hash2", Score: 0.8},
+				{HashID: testHashID1, Score: 0.9},
+				{HashID: testHashID2, Score: 0.8},
 			},
 			articles: []domain.Article{
-				{HashID: "hash1", Title: "Article 1", PublishedAt: &testTime},
-				{HashID: "hash2", Title: "Article 2", PublishedAt: &testTime},
+				{HashID: testHashID1, Title: testTitle1, PublishedAt: &testTime},
+				{HashID: testHashID2, Title: testTitle2, PublishedAt: &testTime},
 			},
 			wantStatus: http.StatusOK,
 			wantArticles: []domain.Article{
-				{HashID: "hash1", Title: "Article 1", PublishedAt: &testTime},
-				{HashID: "hash2", Title: "Article 2", PublishedAt: &testTime},
+				{HashID: testHashID1, Title: testTitle1, PublishedAt: &testTime},
+				{HashID: testHashID2, Title: testTitle2, PublishedAt: &testTime},
 			},
 		},
 		{
@@ -71,7 +71,7 @@ func TestSemanticSearch_ServeHTTP(t *testing.T) {
 		},
 		{
 			name:        "embed_error",
-			body:        `{"text": "test"}`,
+			body:        testSearchBody,
 			embedErr:    errors.New("voyageai error"),
 			wantStatus:  http.StatusInternalServerError,
 			skipSimilar: true,
@@ -79,7 +79,7 @@ func TestSemanticSearch_ServeHTTP(t *testing.T) {
 		},
 		{
 			name:        "nil_vector_returns_503",
-			body:        `{"text": "test"}`,
+			body:        testSearchBody,
 			embedVector: nil,
 			wantStatus:  http.StatusServiceUnavailable,
 			skipSimilar: true,
@@ -87,35 +87,35 @@ func TestSemanticSearch_ServeHTTP(t *testing.T) {
 		},
 		{
 			name:        "similarity_error",
-			body:        `{"text": "test"}`,
+			body:        testSearchBody,
 			embedVector: testVector,
 			similarErr:  errors.New("pinecone error"),
 			wantStatus:  http.StatusInternalServerError,
 			skipFetch:   true,
 		},
 		{
-			name:        "fetch_error",
-			body:        `{"text": "test"}`,
+			name:        testFetchErrorCaseName,
+			body:        testSearchBody,
 			embedVector: testVector,
 			similarResult: []domain.SimilarArticle{
-				{HashID: "hash1", Score: 0.9},
+				{HashID: testHashID1, Score: 0.9},
 			},
 			fetchErr:   errors.New("database error"),
 			wantStatus: http.StatusInternalServerError,
 		},
 		{
 			name:        "default_limit",
-			body:        `{"text": "test"}`,
+			body:        testSearchBody,
 			embedVector: testVector,
 			similarResult: []domain.SimilarArticle{
-				{HashID: "hash1", Score: 0.9},
+				{HashID: testHashID1, Score: 0.9},
 			},
 			articles: []domain.Article{
-				{HashID: "hash1", Title: "Article 1", PublishedAt: &testTime},
+				{HashID: testHashID1, Title: testTitle1, PublishedAt: &testTime},
 			},
 			wantStatus: http.StatusOK,
 			wantArticles: []domain.Article{
-				{HashID: "hash1", Title: "Article 1", PublishedAt: &testTime},
+				{HashID: testHashID1, Title: testTitle1, PublishedAt: &testTime},
 			},
 		},
 	}

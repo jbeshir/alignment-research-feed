@@ -15,6 +15,14 @@ import (
 const (
 	testArticleHash1 = "6a429bf5788aa30893172643f892fb74"
 	testArticleHash2 = "59c45352ef0608a50c51afe9afbc23c3"
+
+	testRefusalTitle   = "Refusal in LLMs is mediated by a single direction"
+	testRefusalURL     = "https://www.alignmentforum.org/posts/jGuXSZgv6qfdhMCuJ/refusal-in-llms-is-mediated-by-a-single-direction"
+	testRefusalText    = "Post text 1"
+	testRefusalAuthors = "Andy Arditi,Oscar Obeso,Aaquib111,wesg,Neel Nanda"
+
+	testSourceAlignmentForum = "alignmentforum"
+	testSourceLessWrong      = "lesswrong"
 )
 
 func boolPtr(b bool) *bool { return &b }
@@ -33,11 +41,11 @@ func setupTestDB(t *testing.T) *sql.DB {
 
 	err = q.InsertArticle(t.Context(), queries.InsertArticleParams{
 		HashID:         testArticleHash1,
-		Title:          sql.NullString{String: "Refusal in LLMs is mediated by a single direction", Valid: true},
-		Url:            sql.NullString{String: "https://www.alignmentforum.org/posts/jGuXSZgv6qfdhMCuJ/refusal-in-llms-is-mediated-by-a-single-direction", Valid: true},
-		Source:         sql.NullString{String: "alignmentforum", Valid: true},
-		Text:           sql.NullString{String: "Post text 1", Valid: true},
-		Authors:        "Andy Arditi,Oscar Obeso,Aaquib111,wesg,Neel Nanda",
+		Title:          sql.NullString{String: testRefusalTitle, Valid: true},
+		Url:            sql.NullString{String: testRefusalURL, Valid: true},
+		Source:         sql.NullString{String: testSourceAlignmentForum, Valid: true},
+		Text:           sql.NullString{String: testRefusalText, Valid: true},
+		Authors:        testRefusalAuthors,
 		DatePublished:  sql.NullTime{Time: time.Date(2024, 4, 27, 11, 13, 6, 0, time.UTC), Valid: true},
 		DateCreated:    time.Date(2024, 4, 28, 0, 27, 37, 0, time.UTC),
 		PineconeStatus: "pending_addition",
@@ -49,7 +57,7 @@ func setupTestDB(t *testing.T) *sql.DB {
 		HashID:         testArticleHash2,
 		Title:          sql.NullString{String: "Constructability: Plainly-coded AGIs may be feasible in the near future", Valid: true},
 		Url:            sql.NullString{String: "https://www.lesswrong.com/posts/y9tnz27oLmtLxcrEF/constructability-plainly-coded-agis-may-be-feasible-in-the", Valid: true},
-		Source:         sql.NullString{String: "lesswrong", Valid: true},
+		Source:         sql.NullString{String: testSourceLessWrong, Valid: true},
 		Text:           sql.NullString{String: "Post text 2", Valid: true},
 		Authors:        "Épiphanie Gédéon,Charbel-Raphaël",
 		DatePublished:  sql.NullTime{Time: time.Date(2024, 4, 27, 16, 04, 46, 0, time.UTC), Valid: true},
@@ -105,7 +113,7 @@ func TestRepository_ListLatestArticleIDs(t *testing.T) {
 		{
 			name: "only_alignmentforum",
 			filters: domain.ArticleFilters{
-				SourcesAllowlist: []string{"alignmentforum"},
+				SourcesAllowlist: []string{testSourceAlignmentForum},
 			},
 			limit: 100,
 			expected: []string{
@@ -115,7 +123,7 @@ func TestRepository_ListLatestArticleIDs(t *testing.T) {
 		{
 			name: "except_alignmentforum",
 			filters: domain.ArticleFilters{
-				SourcesBlocklist: []string{"alignmentforum"},
+				SourcesBlocklist: []string{testSourceAlignmentForum},
 			},
 			limit: 100,
 			expected: []string{
@@ -332,14 +340,14 @@ func TestRepository_TotalMatchingArticles(t *testing.T) {
 		{
 			name: "only_lesswrong",
 			filters: domain.ArticleFilters{
-				SourcesAllowlist: []string{"lesswrong"},
+				SourcesAllowlist: []string{testSourceLessWrong},
 			},
 			expected: 1,
 		},
 		{
 			name: "exclude_all",
 			filters: domain.ArticleFilters{
-				SourcesBlocklist: []string{"lesswrong", "alignmentforum"},
+				SourcesBlocklist: []string{testSourceLessWrong, testSourceAlignmentForum},
 			},
 			expected: 0,
 		},
@@ -497,18 +505,18 @@ func TestRepository_FetchArticlesByID(t *testing.T) {
 					HashID:      testArticleHash2,
 					Title:       "Constructability: Plainly-coded AGIs may be feasible in the near future",
 					Link:        "https://www.lesswrong.com/posts/y9tnz27oLmtLxcrEF/constructability-plainly-coded-agis-may-be-feasible-in-the",
-					Source:      "lesswrong",
+					Source:      testSourceLessWrong,
 					TextStart:   "Post text 2",
 					Authors:     "Épiphanie Gédéon,Charbel-Raphaël",
 					PublishedAt: &article2Time,
 				},
 				{
 					HashID:      testArticleHash1,
-					Title:       "Refusal in LLMs is mediated by a single direction",
-					Link:        "https://www.alignmentforum.org/posts/jGuXSZgv6qfdhMCuJ/refusal-in-llms-is-mediated-by-a-single-direction",
-					Source:      "alignmentforum",
-					TextStart:   "Post text 1",
-					Authors:     "Andy Arditi,Oscar Obeso,Aaquib111,wesg,Neel Nanda",
+					Title:       testRefusalTitle,
+					Link:        testRefusalURL,
+					Source:      testSourceAlignmentForum,
+					TextStart:   testRefusalText,
+					Authors:     testRefusalAuthors,
 					PublishedAt: &article1Time,
 				},
 			},
@@ -520,11 +528,11 @@ func TestRepository_FetchArticlesByID(t *testing.T) {
 			expected: []domain.Article{
 				{
 					HashID:      testArticleHash1,
-					Title:       "Refusal in LLMs is mediated by a single direction",
-					Link:        "https://www.alignmentforum.org/posts/jGuXSZgv6qfdhMCuJ/refusal-in-llms-is-mediated-by-a-single-direction",
-					Source:      "alignmentforum",
-					TextStart:   "Post text 1",
-					Authors:     "Andy Arditi,Oscar Obeso,Aaquib111,wesg,Neel Nanda",
+					Title:       testRefusalTitle,
+					Link:        testRefusalURL,
+					Source:      testSourceAlignmentForum,
+					TextStart:   testRefusalText,
+					Authors:     testRefusalAuthors,
 					PublishedAt: &article1Time,
 				},
 			},
@@ -542,11 +550,11 @@ func TestRepository_FetchArticlesByID(t *testing.T) {
 			expected: []domain.Article{
 				{
 					HashID:      testArticleHash1,
-					Title:       "Refusal in LLMs is mediated by a single direction",
-					Link:        "https://www.alignmentforum.org/posts/jGuXSZgv6qfdhMCuJ/refusal-in-llms-is-mediated-by-a-single-direction",
-					Source:      "alignmentforum",
-					TextStart:   "Post text 1",
-					Authors:     "Andy Arditi,Oscar Obeso,Aaquib111,wesg,Neel Nanda",
+					Title:       testRefusalTitle,
+					Link:        testRefusalURL,
+					Source:      testSourceAlignmentForum,
+					TextStart:   testRefusalText,
+					Authors:     testRefusalAuthors,
 					PublishedAt: &article1Time,
 					HaveRead:    func() *bool { b := true; return &b }(),
 					ThumbsUp:    func() *bool { b := false; return &b }(),

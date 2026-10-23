@@ -31,51 +31,51 @@ func TestArticleGet_ServeHTTP(t *testing.T) {
 	}{
 		{
 			name:         "successful_fetch",
-			articleID:    "hash123",
+			articleID:    testArticleID,
 			setupContext: testContext(),
 			articles: []domain.Article{
 				{
-					HashID:      "hash123",
-					Title:       "Test Article",
+					HashID:      testArticleID,
+					Title:       testArticleTitle,
 					Link:        "https://example.com/article",
-					Source:      "lesswrong",
+					Source:      testSourceLessWrong,
 					Authors:     "John Doe",
 					PublishedAt: &testTime,
 				},
 			},
 			wantStatus:    http.StatusOK,
-			wantCacheCtrl: "max-age=3600",
+			wantCacheCtrl: testMaxAgeCacheControl,
 			wantArticle: &domain.Article{
-				HashID:      "hash123",
-				Title:       "Test Article",
+				HashID:      testArticleID,
+				Title:       testArticleTitle,
 				Link:        "https://example.com/article",
-				Source:      "lesswrong",
+				Source:      testSourceLessWrong,
 				Authors:     "John Doe",
 				PublishedAt: &testTime,
 			},
 		},
 		{
-			name:         "no_cache_for_authenticated_user",
-			articleID:    "hash123",
-			setupContext: testContextWithUserID("user456"),
+			name:         testNoCacheCaseName,
+			articleID:    testArticleID,
+			setupContext: testContextWithUserID(testUserID),
 			articles: []domain.Article{
 				{
-					HashID:      "hash123",
-					Title:       "Test Article",
+					HashID:      testArticleID,
+					Title:       testArticleTitle,
 					PublishedAt: &testTime,
 				},
 			},
 			wantStatus:    http.StatusOK,
 			wantCacheCtrl: "",
 			wantArticle: &domain.Article{
-				HashID:      "hash123",
-				Title:       "Test Article",
+				HashID:      testArticleID,
+				Title:       testArticleTitle,
 				PublishedAt: &testTime,
 			},
 		},
 		{
-			name:         "fetch_error",
-			articleID:    "hash123",
+			name:         testFetchErrorCaseName,
+			articleID:    testArticleID,
 			setupContext: testContext(),
 			fetchErr:     errors.New("database error"),
 			wantStatus:   http.StatusInternalServerError,
@@ -97,7 +97,7 @@ func TestArticleGet_ServeHTTP(t *testing.T) {
 
 			req := httptest.NewRequestWithContext(t.Context(), http.MethodGet, "/articles/"+tc.articleID, nil)
 			req = tc.setupContext(req)
-			req = mux.SetURLVars(req, map[string]string{"article_id": tc.articleID})
+			req = mux.SetURLVars(req, map[string]string{muxVarArticleID: tc.articleID})
 			rec := httptest.NewRecorder()
 
 			controller.ServeHTTP(rec, req)
